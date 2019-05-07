@@ -78,7 +78,7 @@ halfsiphash(const uint8_t *in, const size_t inlen, const uint64_t k)
 		}
 		v0 ^= m;
 	}
-
+/* RS Change
 	switch (left) {
 	case 3:
 		b |= ((uint32_t)in[2]) << 16;
@@ -90,6 +90,16 @@ halfsiphash(const uint8_t *in, const size_t inlen, const uint64_t k)
 	case 0:
 		break;
 	}
+        */
+        if ( ( left >= 1 ) && ( left <= 3 ) ) {
+		b |= ((uint32_t)in[0]);
+        }
+        if ( ( left >= 2 ) && ( left <= 3 ) ) {
+		b |= ((uint32_t)in[1]) << 8;
+        }
+        if ( ( left >= 3 ) && ( left <= 3 ) ) {
+		b |= ((uint32_t)in[2]) << 16;
+        }
 
 	v3 ^= b;
 
