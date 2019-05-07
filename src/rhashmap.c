@@ -36,35 +36,21 @@
 #define	APPROX_85_PERCENT(x)	(((x) * 870) >> 10)
 #define	APPROX_40_PERCENT(x)	(((x) * 409) >> 10)
 
-typedef struct {
-	void *		key;
-	void *		val;
-	uint64_t	hash	: 32;
-	uint64_t	psl	: 16;
-	uint64_t	len	: 16;
-} rh_bucket_t;
-
-struct rhashmap {
-	unsigned	size;
-	unsigned	nitems;
-	unsigned	flags;
-	uint64_t	divinfo;
-	rh_bucket_t *	buckets;
-	uint64_t	hashkey;
-	unsigned	minsize;
-};
-
 static inline uint32_t __attribute__((always_inline))
-compute_hash(const rhashmap_t *hmap, const void *key, const size_t len)
+compute_hash(
+    const rhashmap_t *hmap, 
+    const void *key, 
+    const size_t len
+    )
 {
-	/*
-	 * Avoiding the use function pointers here; test and call relying
-	 * on branch predictors provides a better performance.
-	 */
-	if (hmap->flags & RHM_NONCRYPTO) {
-		return murmurhash3(key, len, hmap->hashkey);
-	}
-	return halfsiphash(key, len, hmap->hashkey);
+  /*
+   * Avoiding the use function pointers here; test and call relying
+   * on branch predictors provides a better performance.
+   */
+  if (hmap->flags & RHM_NONCRYPTO) {
+    return murmurhash3(key, len, hmap->hashkey);
+  }
+  return halfsiphash(key, len, hmap->hashkey);
 }
 
 static int __attribute__((__unused__))

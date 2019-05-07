@@ -8,21 +8,55 @@
 #ifndef _RHASHMAP_H_
 #define _RHASHMAP_H_
 
-__BEGIN_DECLS
-
-struct rhashmap;
-typedef struct rhashmap rhashmap_t;
-
 #define	RHM_NOCOPY		0x01
 #define	RHM_NONCRYPTO		0x02
 
-rhashmap_t *	rhashmap_create(size_t, unsigned);
-void		rhashmap_destroy(rhashmap_t *);
+typedef struct _rh_bucket_t {
+	void *		key;
+	void *		val;
+	uint64_t	hash	: 32;
+	uint64_t	psl	: 16;
+	uint64_t	len	: 16;
+} rh_bucket_t;
 
-void *		rhashmap_get(rhashmap_t *, const void *, size_t);
-void *		rhashmap_put(rhashmap_t *, const void *, size_t, void *);
-void *		rhashmap_del(rhashmap_t *, const void *, size_t);
+typedef struct _rhashmap_t {
+	unsigned	size;
+	unsigned	nitems;
+	unsigned	flags;
+	uint64_t	divinfo;
+	rh_bucket_t *	buckets;
+	uint64_t	hashkey;
+	unsigned	minsize;
+} rhashmap_t;
 
-__END_DECLS
+extern rhashmap_t *	
+rhashmap_create(
+    size_t, 
+    unsigned
+    );
+extern void		
+rhashmap_destroy(
+    rhashmap_t *
+    );
+
+extern void *		
+rhashmap_get(
+    rhashmap_t *, 
+    const void *, 
+    size_t
+    );
+extern void *		
+rhashmap_put(
+    rhashmap_t *, 
+    const void *, 
+    size_t, 
+    void *
+    );
+extern void *		
+rhashmap_del(
+    rhashmap_t *, 
+    const void *, 
+    size_t
+    );
 
 #endif
