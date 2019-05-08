@@ -11,50 +11,56 @@
 #define	RHM_NOCOPY		0x01
 #define	RHM_NONCRYPTO		0x02
 
+#define concat2(x, y) x ## y 
+#define concat3(x, y, z) x ## y ## z
 #define __KEYTYPE__ uint64_t
 #define __VALTYPE__  int64_t
+#define KV concat2(__KEYTYPE__, __VALTYPE__)
 
-typedef struct _rh_bucket_t {
+#define bucket_type concat3(q_rh_bucket_, KV, _t)
+#define hashmap_type concat3(q_rhashmap__, KV, _t)
+
+typedef struct {
 	__KEYTYPE__  key; 
 	__VALTYPE__ val;
 	uint64_t	hash	: 32;
 	uint64_t	psl	: 16;
-} rh_bucket_t;
+} bucket_type;
 
-typedef struct _q_rhashmap_t {
+typedef struct {
 	unsigned	size;
 	unsigned	nitems;
 	unsigned	flags;
 	uint64_t	divinfo;
-	rh_bucket_t *	buckets;
+	bucket_type *	buckets;
 	uint64_t	hashkey;
 	unsigned	minsize;
-} q_rhashmap_t;
+} hashmap_type;
 
-extern q_rhashmap_t *	
+extern hashmap_type *	
 q_rhashmap_create(
     size_t, 
     unsigned
     );
 extern void		
 q_rhashmap_destroy(
-    q_rhashmap_t *
+    hashmap_type *
     );
 
 extern __VALTYPE__
 q_rhashmap_get(
-    q_rhashmap_t *, 
+    hashmap_type *, 
     __KEYTYPE__ key
     );
 extern __VALTYPE__
 q_rhashmap_put(
-    q_rhashmap_t *, 
+    hashmap_type *, 
     __KEYTYPE__ key,
     __VALTYPE__ val
     );
 extern __VALTYPE__
 q_rhashmap_del(
-    q_rhashmap_t *, 
+    hashmap_type *, 
     __KEYTYPE__ key
     );
 
