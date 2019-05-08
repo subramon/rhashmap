@@ -26,7 +26,7 @@
 #include <limits.h>
 #include <assert.h>
 
-#include "rhashmap.h"
+#include "q_rhashmap.h"
 #include "fastdiv.h"
 #include "utils.h"
 
@@ -38,7 +38,7 @@
 
 static inline uint32_t __attribute__((always_inline))
 compute_hash(
-    const rhashmap_t *hmap, 
+    const q_rhashmap_t *hmap, 
     const void *key, 
     const size_t len
     )
@@ -55,14 +55,14 @@ compute_hash(
 
 static int __attribute__((__unused__))
 validate_psl_p(
-    rhashmap_t *hmap, 
+    q_rhashmap_t *hmap, 
     const rh_bucket_t *bucket, 
     unsigned i
     )
 {
   unsigned base_i = fast_rem32(bucket->hash, hmap->size, hmap->divinfo);
   unsigned diff = (base_i > i) ? hmap->size - base_i + i : i - base_i;
-  return bucket->key == NULL || diff == bucket->psl;
+  return bucket->key == 0 || diff == bucket->psl;
 }
 
 /*
@@ -70,19 +70,15 @@ validate_psl_p(
  *
  * => If key is present, return its associated value; otherwise NULL.
  */
-void *
-rhashmap_get(
-    rhashmap_t *hmap, 
-    const void *key, 
-    size_t len
+__VALTYPE__
+q_rhashmap_get(
+    q_rhashmap_t *hmap, 
+    __KEYTYPE__  key
     )
 {
-  const uint32_t hash = compute_hash(hmap, key, len);
+  const uint32_t hash = compute_hash(hmap, &key, sizeof(__KEYTYPE__));
   unsigned n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
   rh_bucket_t *bucket;
-
-  ASSERT(key != NULL);
-  ASSERT(len != 0);
 
   /*
    * Lookup is a linear probe.
@@ -91,8 +87,7 @@ probe:
   bucket = &hmap->buckets[i];
   ASSERT(validate_psl_p(hmap, bucket, i));
 
-  if ( ( bucket->hash == hash ) && ( bucket->len == len ) &&
-      ( memcmp(bucket->key, key, len) == 0) ) {
+  if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
     return bucket->val;
   }
 
@@ -104,7 +99,7 @@ probe:
    * point of the algorithm in the insertion function.
    */
   if (!bucket->key || n > bucket->psl) {
-    return NULL;
+    return 0;
   }
   n++;
 
@@ -116,35 +111,24 @@ probe:
 /*
  * rhashmap_insert: internal rhashmap_put(), without the resize.
  */
-static void *
-rhashmap_insert(
-    rhashmap_t *hmap, 
-    const void *key, 
-    size_t len, 
-    void *val
+static __VALTYPE__ // TODO CHeck this type
+q_rhashmap_insert(
+    q_rhashmap_t *hmap, 
+    __KEYTYPE__ key,
+    __VALTYPE__ val
     )
 {
-  const uint32_t hash = compute_hash(hmap, key, len);
+  const uint32_t hash = compute_hash(hmap, &key, sizeof(__KEYTYPE__));
   rh_bucket_t *bucket, entry;
   unsigned i;
 
-  ASSERT(key != NULL);
-  ASSERT(len != 0);
+  ASSERT(key != 0);
 
   /*
    * Setup the bucket entry.
    */
-  if ((hmap->flags & RHM_NOCOPY) == 0) {
-    if ((entry.key = malloc(len)) == NULL) {
-      return NULL;
-    }
-    memcpy(entry.key, key, len);
-  } 
-  else {
-    entry.key = (void *)(uintptr_t)key;
-  }
+  entry.key  = key;
   entry.hash = hash;
-  entry.len  = len;
   entry.val  = val;
   entry.psl  = 0;
 
@@ -167,12 +151,13 @@ probe:
     /*
      * There is a key in the bucket.
      */
-    if ( (bucket->hash == hash) && (bucket->len == len) &&
-        (memcmp(bucket->key, key, len) == 0) ) {
-      /* Duplicate key: return the current value. */
+    if ( (bucket->hash == hash) && (bucket->key == key) ) { 
+      /* Duplicate key: return the current value. 
+         TODO What to do about this code?
       if ((hmap->flags & RHM_NOCOPY) == 0) {
         free(entry.key);
       }
+       * */
       return bucket->val;
     }
 
@@ -209,8 +194,8 @@ probe:
 }
 
 static int
-rhashmap_resize(
-    rhashmap_t *hmap, 
+q_rhashmap_resize(
+    q_rhashmap_t *hmap, 
     size_t newsize
     )
 {
@@ -243,10 +228,12 @@ rhashmap_resize(
     if (!bucket->key) {
       continue;
     }
-    rhashmap_insert(hmap, bucket->key, bucket->len, bucket->val);
+    q_rhashmap_insert(hmap, bucket->key, bucket->val);
+    /* What do we do about this??
     if ((hmap->flags & RHM_NOCOPY) == 0) {
       free(bucket->key);
     }
+    */
   }
   if (oldbuckets) {
     free(oldbuckets);
@@ -260,12 +247,11 @@ rhashmap_resize(
  * => If the key is already present, return its associated value.
  * => Otherwise, on successful insert, return the given value.
  */
-void *
-rhashmap_put(
-    rhashmap_t *hmap, 
-    const void *key, 
-    size_t len, 
-    void *val
+__VALTYPE__ 
+q_rhashmap_put(
+    q_rhashmap_t *hmap, 
+    __KEYTYPE__ key, 
+    __VALTYPE__ val
     )
 {
   const size_t threshold = APPROX_85_PERCENT(hmap->size);
@@ -280,12 +266,12 @@ rhashmap_put(
      */
     const size_t grow_limit = hmap->size + MAX_GROWTH_STEP;
     const size_t newsize = MIN(hmap->size << 1, grow_limit);
-    if (rhashmap_resize(hmap, newsize) != 0) {
-      return NULL;
+    if (q_rhashmap_resize(hmap, newsize) != 0) {
+      return 0;
     }
   }
 
-  return rhashmap_insert(hmap, key, len, val);
+  return q_rhashmap_insert(hmap, key, val);
 }
 
 /*
@@ -293,33 +279,29 @@ rhashmap_put(
  *
  * => If key was present, return its associated value; otherwise NULL.
  */
-void *
-rhashmap_del(
-    rhashmap_t *hmap, 
-    const void *key, 
-    size_t len
+__VALTYPE__ 
+q_rhashmap_del(
+    q_rhashmap_t *hmap, 
+    __KEYTYPE__ key
     )
 {
   const size_t threshold = APPROX_40_PERCENT(hmap->size);
-  const uint32_t hash = compute_hash(hmap, key, len);
+  const uint32_t hash = compute_hash(hmap, &key, sizeof(__KEYTYPE__));
   unsigned n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
   rh_bucket_t *bucket;
-  void *val;
+  __VALTYPE__ val;
 
-  ASSERT(key != NULL);
-  ASSERT(len != 0);
 probe:
   /*
    * The same probing logic as in the lookup function.
    */
   bucket = &hmap->buckets[i];
   if (!bucket->key || n > bucket->psl) {
-    return NULL;
+    return 0;
   }
   ASSERT(validate_psl_p(hmap, bucket, i));
 
-  if (bucket->hash != hash || bucket->len != len ||
-      memcmp(bucket->key, key, len) != 0) {
+  if ( ( bucket->hash != hash ) || ( bucket->key != key ) ) { 
     /* Continue to the next bucket. */
     i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
     n++;
@@ -330,7 +312,7 @@ probe:
    * Free the bucket.
    */
   if ((hmap->flags & RHM_NOCOPY) == 0) {
-    free(bucket->key);
+    bucket->key = 0; // free(bucket->key);
   }
   val = bucket->val;
   hmap->nitems--;
@@ -342,8 +324,7 @@ probe:
   for (;;) {
     rh_bucket_t *nbucket;
 
-    bucket->key = NULL;
-    bucket->len = 0;
+    bucket->key = 0;
 
     i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
     nbucket = &hmap->buckets[i];
@@ -368,7 +349,7 @@ probe:
    */
   if (hmap->nitems > hmap->minsize && hmap->nitems < threshold) {
     size_t newsize = MAX(hmap->size >> 1, hmap->minsize);
-    (void)rhashmap_resize(hmap, newsize);
+    (void)q_rhashmap_resize(hmap, newsize);
   }
   return val;
 }
@@ -379,21 +360,21 @@ probe:
  * => If size is non-zero, then pre-allocate the given number of buckets;
  * => If size is zero, then a default minimum is used.
  */
-rhashmap_t *
-rhashmap_create(
+q_rhashmap_t *
+q_rhashmap_create(
       size_t size, 
         unsigned flags
         )
 {
-  rhashmap_t *hmap;
+  q_rhashmap_t *hmap;
 
-  hmap = calloc(1, sizeof(rhashmap_t));
+  hmap = calloc(1, sizeof(q_rhashmap_t));
   if (!hmap) {
     return NULL;
   }
   hmap->flags = flags;
   hmap->minsize = MAX(size, HASH_INIT_SIZE);
-  if (rhashmap_resize(hmap, hmap->minsize) != 0) {
+  if (q_rhashmap_resize(hmap, hmap->minsize) != 0) {
     free(hmap);
     return NULL;
   }
@@ -408,19 +389,10 @@ rhashmap_create(
  * => It is the responsibility of the caller to remove elements if needed.
  */
 void
-rhashmap_destroy(
-    rhashmap_t *hmap
+q_rhashmap_destroy(
+    q_rhashmap_t *hmap
     )
 {
-  if ((hmap->flags & RHM_NOCOPY) == 0) {
-    for (unsigned i = 0; i < hmap->size; i++) {
-      const rh_bucket_t *bucket = &hmap->buckets[i];
-
-      if (bucket->key) {
-        free(bucket->key);
-      }
-    }
-  }
   free(hmap->buckets);
   free(hmap);
 }

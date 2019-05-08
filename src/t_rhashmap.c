@@ -196,6 +196,51 @@ test_random(void)
   free(lens);
 }
 
+static void
+test_parallel(void)
+{
+  rhashmap_t **hmaps = NULL;
+  int nT = 32;
+  hmaps = malloc(nT * sizeof(rhashmap_t *));
+  memset(hmaps, '\0', nT * sizeof(rhashmap_t *));
+  for ( int i = 0; i < nT; i++ ) { 
+    hmaps[i] = rhashmap_create(0, 0);
+    assert(hmaps[i] != NULL);
+  }
+/*
+  int num_keys_in_parallel = 65536;
+  int64_t keys[num_keys_in_parallel];
+  int num_batches = 1;
+  for ( int i = 0; i < num_batches; i++ ) { 
+    for ( int j = 0; j < num_keys_in_parallel; j++ ) { 
+    }
+  }
+
+  void *ret;
+
+
+  ret = rhashmap_get(hmap, "test", 4);
+  assert(ret == NULL);
+
+  ret = rhashmap_put(hmap, "test", 4, NUM2PTR(0x55));
+  assert(ret == NUM2PTR(0x55));
+
+  ret = rhashmap_get(hmap, "test", 4);
+  assert(ret == NUM2PTR(0x55));
+
+  ret = rhashmap_del(hmap, "test", 4);
+  assert(ret == NUM2PTR(0x55));
+
+  ret = rhashmap_get(hmap, "test", 4);
+  assert(ret == NULL);
+
+  */
+  for ( int i = 0; i < nT; i++ ) { 
+    rhashmap_destroy(hmaps[i]);
+  }
+  free(hmaps);
+}
+
 int
 main(void)
 {
@@ -203,6 +248,7 @@ main(void)
   test_large();
   test_delete();
   test_random();
+  test_parallel();
   puts("ok");
   return 0;
 }

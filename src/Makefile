@@ -4,7 +4,8 @@
 
 PROJ=		rhashmap
 
-CFLAGS+=	-std=c11 -O2 -g -Wall -Wextra -Werror
+CFLAGS+=	-std=c11 -g -Wall -Wextra -Werror
+CFLAGS+=	-O4
 CFLAGS+=	-D_POSIX_C_SOURCE=200809L
 CFLAGS+=	-D_GNU_SOURCE -D_DEFAULT_SOURCE
 
@@ -34,11 +35,12 @@ CFLAGS+=	-DNDEBUG
 endif
 
 LIB=		lib$(PROJ)
-INCS=		rhashmap.h
+INCS=		rhashmap.h q_rhashmap.h
 
 OBJS=		rhashmap.o
 OBJS+=		murmurhash.o
 OBJS+=		siphash.o
+OBJS+=		q_rhashmap.o
 
 $(LIB).la:	LDFLAGS+=	-rpath $(LIBDIR) -version-info 1:0:0
 install/%.la:	ILIBDIR=	$(DESTDIR)/$(LIBDIR)
@@ -67,6 +69,10 @@ install: $(addprefix install/,$(LIB).la)
 tests: $(OBJS) t_$(PROJ).o
 	$(CC) $(CFLAGS) $^ -o t_$(PROJ)
 	MALLOC_CHECK_=3 ./t_$(PROJ)
+
+q_tests: $(OBJS) test_$(PROJ).o
+	$(CC) $(CFLAGS) $^ -o test_q_$(PROJ)
+	MALLOC_CHECK_=3 ./test_q_$(PROJ)
 
 clean:
 	libtool --mode=clean rm

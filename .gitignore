@@ -2,3 +2,5 @@ _*
 *.o
 *.so
 *.a
+t_rhashmap
+test_q_rhashmap
