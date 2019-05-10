@@ -4,9 +4,10 @@
 
 PROJ=		rhashmap
 
-CFLAGS+=	-std=c11 -g -Wall -Wextra -Werror
+CC=gcc
+CFLAGS+=	-std=gnu99 -Wall -Wextra -Werror
 CFLAGS+=	-O4
-CFLAGS+=	-D_POSIX_C_SOURCE=200809L
+CFLAGS+=	-g
 CFLAGS+=	-D_GNU_SOURCE -D_DEFAULT_SOURCE
 
 #
@@ -21,8 +22,8 @@ CFLAGS+=	-Wold-style-definition
 CFLAGS+=	-Wsuggest-attribute=noreturn -Wjump-misses-init
 
 # New GCC 6/7 flags:
-#CFLAGS+=	-Wduplicated-cond -Wmisleading-indentation -Wnull-dereference
-#CFLAGS+=	-Wduplicated-branches -Wrestrict
+CFLAGS+=	-Wduplicated-cond -Wmisleading-indentation -Wnull-dereference
+CFLAGS+=	-Wduplicated-branches -Wrestrict
 
 ifeq ($(MAKECMDGOALS),tests)
 DEBUG=		1

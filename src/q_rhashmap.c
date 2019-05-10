@@ -36,22 +36,6 @@
 #define	APPROX_85_PERCENT(x)	(((x) * 870) >> 10)
 #define	APPROX_40_PERCENT(x)	(((x) * 409) >> 10)
 
-static inline uint32_t __attribute__((always_inline))
-compute_hash(
-    const hashmap_type *hmap, 
-    const void *key, 
-    const size_t len
-    )
-{
-  /*
-   * Avoiding the use function pointers here; test and call relying
-   * on branch predictors provides a better performance.
-   */
-  if (hmap->flags & RHM_NONCRYPTO) {
-    return murmurhash3(key, len, hmap->hashkey);
-  }
-  return halfsiphash(key, len, hmap->hashkey);
-}
 
 static int __attribute__((__unused__))
 validate_psl_p(
@@ -71,12 +55,12 @@ validate_psl_p(
  * => If key is present, return its associated value; otherwise NULL.
  */
 __VALTYPE__
-q_rhashmap_get(
+NAME(q_rhashmap_get)(
     hashmap_type *hmap, 
     __KEYTYPE__  key
     )
 {
-  const uint32_t hash = compute_hash(hmap, &key, sizeof(__KEYTYPE__));
+  const uint32_t hash = murmurhash3(&key, sizeof(__KEYTYPE__), hmap->hashkey);
   unsigned n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
   bucket_type *bucket;
 
@@ -118,7 +102,7 @@ q_rhashmap_insert(
     __VALTYPE__ val
     )
 {
-  const uint32_t hash = compute_hash(hmap, &key, sizeof(__KEYTYPE__));
+  const uint32_t hash = murmurhash3(&key, sizeof(__KEYTYPE__), hmap->hashkey);
   bucket_type *bucket, entry;
   unsigned i;
 
@@ -248,7 +232,7 @@ q_rhashmap_resize(
  * => Otherwise, on successful insert, return the given value.
  */
 __VALTYPE__ 
-q_rhashmap_put(
+NAME(q_rhashmap_put)(
     hashmap_type *hmap, 
     __KEYTYPE__ key, 
     __VALTYPE__ val
@@ -280,13 +264,13 @@ q_rhashmap_put(
  * => If key was present, return its associated value; otherwise NULL.
  */
 __VALTYPE__ 
-q_rhashmap_del(
+NAME(q_rhashmap_del)(
     hashmap_type *hmap, 
     __KEYTYPE__ key
     )
 {
   const size_t threshold = APPROX_40_PERCENT(hmap->size);
-  const uint32_t hash = compute_hash(hmap, &key, sizeof(__KEYTYPE__));
+  const uint32_t hash = murmurhash3(&key, sizeof(__KEYTYPE__), hmap->hashkey);
   unsigned n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
   bucket_type *bucket;
   __VALTYPE__ val;
@@ -361,9 +345,8 @@ probe:
  * => If size is zero, then a default minimum is used.
  */
 hashmap_type *
-q_rhashmap_create(
-      size_t size, 
-        unsigned flags
+NAME(q_rhashmap_create)(
+      size_t size
         )
 {
   hashmap_type *hmap;
@@ -372,7 +355,6 @@ q_rhashmap_create(
   if (!hmap) {
     return NULL;
   }
-  hmap->flags = flags;
   hmap->minsize = MAX(size, HASH_INIT_SIZE);
   if (q_rhashmap_resize(hmap, hmap->minsize) != 0) {
     free(hmap);
@@ -389,7 +371,7 @@ q_rhashmap_create(
  * => It is the responsibility of the caller to remove elements if needed.
  */
 void
-q_rhashmap_destroy(
+NAME(q_rhashmap_destroy)(
     hashmap_type *hmap
     )
 {
