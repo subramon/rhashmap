@@ -65,7 +65,7 @@ test_add_a_lot(
   VALTYPE val, oldval;
   bool key_exists;
   KEYTYPE key;
-  uint32_t  N = 1024 * 1048576;
+  uint32_t  N = 1048576;
   uint64_t t_stop, t_start = RDTSC();
 
   hmap = q_rhashmap_create(0);
