@@ -8,60 +8,66 @@
 #ifndef _RHASHMAP_H_
 #define _RHASHMAP_H_
 
-#define	RHM_NOCOPY		0x01
-#define	RHM_NONCRYPTO		0x02
+#define	Q_RHM_SET  1
+#define	Q_RHM_INCR 2
 
-#define __KEYTYPE__ uint64_t
-#define __VALTYPE__  int64_t
-#define KV I8_I8
-#define PASTER(x,y) x ## _ ## y
-#define EVALUATOR(x,y)  PASTER(x,y)
-#define NAME(fun) EVALUATOR(fun, KV)
+#define KEYTYPE uint64_t
+#define VALTYPE  int64_t
 
-#define bucket_type   rh_bucket_I8_I8_t
-#define hashmap_type rhashmap_I8_I8_t
+#include <assert.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "macros.h"
 
 typedef struct {
-	__KEYTYPE__  key; 
-	__VALTYPE__ val;
+	KEYTYPE  key; 
+	VALTYPE val;
 	uint64_t	hash	: 32;
 	uint64_t	psl	: 16;
-} bucket_type;
+} q_rh_bucket_t;
 
 typedef struct {
 	unsigned	size;
 	unsigned	nitems;
 	unsigned	flags;
 	uint64_t	divinfo;
-	bucket_type *	buckets;
+	q_rh_bucket_t *	buckets;
 	uint64_t	hashkey;
 	unsigned	minsize;
-} hashmap_type;
+} q_rhashmap_t;
 
-extern hashmap_type *	
-NAME(q_rhashmap_create)(
+extern q_rhashmap_t *	
+q_rhashmap_create(
     size_t initial_size
     );
 extern void		
-NAME(q_rhashmap_destroy)(
-    hashmap_type *
+q_rhashmap_destroy(
+    q_rhashmap_t *
     );
 
-extern __VALTYPE__
-NAME(q_rhashmap_get)(
-    hashmap_type *, 
-    __KEYTYPE__ key
+extern VALTYPE
+q_rhashmap_get(
+    q_rhashmap_t *, 
+    KEYTYPE key
     );
-extern __VALTYPE__
-NAME(q_rhashmap_put)(
-    hashmap_type *, 
-    __KEYTYPE__ key,
-    __VALTYPE__ val
+extern int
+q_rhashmap_put(
+    q_rhashmap_t *, 
+    KEYTYPE key,
+    VALTYPE val,
+    int update_type,
+    VALTYPE *ptr_oldval
     );
-extern __VALTYPE__
-NAME(q_rhashmap_del)(
-    hashmap_type *, 
-    __KEYTYPE__ key
+extern int
+q_rhashmap_del(
+    q_rhashmap_t *, 
+    KEYTYPE key,
+    bool *ptr_key_exists,
+    VALTYPE *ptr_oldval
     );
 
 #endif

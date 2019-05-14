@@ -19,13 +19,6 @@
  *	https://cs.uwaterloo.ca/research/tr/1986/CS-86-14.pdf
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
-#include <limits.h>
-#include <assert.h>
-
 #include "q_rhashmap.h"
 #include "fastdiv.h"
 #include "utils.h"
@@ -39,8 +32,8 @@
 
 static int __attribute__((__unused__))
 validate_psl_p(
-    hashmap_type *hmap, 
-    const bucket_type *bucket, 
+    q_rhashmap_t *hmap, 
+    const q_rh_bucket_t *bucket, 
     unsigned i
     )
 {
@@ -54,15 +47,15 @@ validate_psl_p(
  *
  * => If key is present, return its associated value; otherwise NULL.
  */
-__VALTYPE__
-NAME(q_rhashmap_get)(
-    hashmap_type *hmap, 
-    __KEYTYPE__  key
+VALTYPE
+q_rhashmap_get(
+    q_rhashmap_t *hmap, 
+    KEYTYPE  key
     )
 {
-  const uint32_t hash = murmurhash3(&key, sizeof(__KEYTYPE__), hmap->hashkey);
+  const uint32_t hash = murmurhash3(&key, sizeof(KEYTYPE), hmap->hashkey);
   unsigned n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
-  bucket_type *bucket;
+  q_rh_bucket_t *bucket = NULL;
 
   /*
    * Lookup is a linear probe.
@@ -95,26 +88,29 @@ probe:
 /*
  * rhashmap_insert: internal rhashmap_put(), without the resize.
  */
-static __VALTYPE__ // TODO CHeck this type
+static int
 q_rhashmap_insert(
-    hashmap_type *hmap, 
-    __KEYTYPE__ key,
-    __VALTYPE__ val
+    q_rhashmap_t *hmap, 
+    KEYTYPE key,
+    VALTYPE val,
+    int update_type,
+    VALTYPE *ptr_oldval
     )
 {
-  const uint32_t hash = murmurhash3(&key, sizeof(__KEYTYPE__), hmap->hashkey);
-  bucket_type *bucket, entry;
+  int status = 0;
+  const uint32_t hash = murmurhash3(&key, sizeof(KEYTYPE), hmap->hashkey);
+  q_rh_bucket_t *bucket, entry;
   unsigned i;
 
-  ASSERT(key != 0);
+  // 0 is not a valid value for a key
+  if ( key == 0 ) { go_BYE(-1); }
 
-  /*
-   * Setup the bucket entry.
-   */
-  entry.key  = key;
-  entry.hash = hash;
-  entry.val  = val;
-  entry.psl  = 0;
+  // Setup the bucket entry.
+  entry.key   = key;
+  entry.hash  = hash;
+  entry.val   = val;
+  entry.psl   = 0;
+  *ptr_oldval = 0;
 
   /*
    * From the paper: "when inserting, if a record probes a location
@@ -136,20 +132,24 @@ probe:
      * There is a key in the bucket.
      */
     if ( (bucket->hash == hash) && (bucket->key == key) ) { 
-      /* Duplicate key: return the current value. 
-         TODO What to do about this code?
-      if ((hmap->flags & RHM_NOCOPY) == 0) {
-        free(entry.key);
+      *ptr_oldval = bucket->val;
+      if ( update_type == Q_RHM_SET ) { 
+        bucket->val = val;
       }
-       * */
-      return bucket->val;
+      else if ( update_type == Q_RHM_INCR ) { 
+        bucket->val += val;
+      }
+      else {
+        go_BYE(-1);
+      }
+      goto BYE;
     }
 
     /*
      * We found a "rich" bucket.  Capture its location.
      */
     if (entry.psl > bucket->psl) {
-      bucket_type tmp;
+      q_rh_bucket_t tmp;
 
       /*
        * Place our key-value pair by swapping the "rich"
@@ -174,55 +174,52 @@ probe:
   hmap->nitems++;
 
   ASSERT(validate_psl_p(hmap, bucket, i));
-  return val;
+BYE:
+  return status;
 }
 
 static int
 q_rhashmap_resize(
-    hashmap_type *hmap, 
+    q_rhashmap_t *hmap, 
     size_t newsize
     )
 {
-  const size_t len = newsize * sizeof(bucket_type);
-  bucket_type *oldbuckets = hmap->buckets;
+  int status = 0;
+  q_rh_bucket_t *oldbuckets = hmap->buckets;
   const size_t oldsize = hmap->size;
-  bucket_type *newbuckets;
+  q_rh_bucket_t *newbuckets = NULL;
+  const size_t len = newsize * sizeof(q_rh_bucket_t);
 
-  ASSERT(newsize > 0);
-  ASSERT(newsize > hmap->nitems);
+  if ( ( oldbuckets == NULL ) && ( oldsize != 0 ) ) { go_BYE(-1); }
+  if ( ( oldbuckets != NULL ) && ( oldsize == 0 ) ) { go_BYE(-1); }
+  if ( ( newsize <= 0 ) || ( newsize >= UINT_MAX ) )  { go_BYE(-1); }
+  if ( newsize < hmap->nitems ) { go_BYE(-1); }
 
-  /*
-   * Check for an overflow and allocate buckets.  Also, generate
-   * a new hash key/seed every time we resize the hash table.
-   */
-  if (newsize > UINT_MAX || (newbuckets = calloc(1, len)) == NULL) {
-    return -1;
-  }
+  // Check for an overflow and allocate buckets.  
+  newbuckets = malloc(len);
+  return_if_malloc_failed(newbuckets);
+  memset(newbuckets, '\0', len);
+
   hmap->buckets = newbuckets;
-  hmap->size = newsize;
-  hmap->nitems = 0;
+  hmap->size    = newsize;
+  hmap->nitems  = 0;
 
+   // generate a new hash key/seed every time we resize the hash table.
   hmap->divinfo = fast_div32_init(newsize);
   hmap->hashkey ^= random() | (random() << 32);
 
-  for (unsigned i = 0; i < oldsize; i++) {
-    const bucket_type *bucket = &oldbuckets[i];
+  for ( uint32_t i = 0; i < oldsize; i++) {
+    const q_rh_bucket_t *bucket = &oldbuckets[i];
 
     /* Skip the empty buckets. */
-    if (!bucket->key) {
-      continue;
-    }
-    q_rhashmap_insert(hmap, bucket->key, bucket->val);
-    /* What do we do about this??
-    if ((hmap->flags & RHM_NOCOPY) == 0) {
-      free(bucket->key);
-    }
-    */
+    if ( !bucket->key ) { continue; }
+
+    VALTYPE oldval; // not needed except for signature
+    q_rhashmap_insert(hmap, bucket->key, bucket->val, Q_RHM_SET, &oldval);
   }
-  if (oldbuckets) {
-    free(oldbuckets);
-  }
-  return 0;
+  free_if_non_null(oldbuckets);
+BYE:
+  return status;
 }
 
 /*
@@ -231,13 +228,16 @@ q_rhashmap_resize(
  * => If the key is already present, return its associated value.
  * => Otherwise, on successful insert, return the given value.
  */
-__VALTYPE__ 
-NAME(q_rhashmap_put)(
-    hashmap_type *hmap, 
-    __KEYTYPE__ key, 
-    __VALTYPE__ val
+int
+q_rhashmap_put(
+    q_rhashmap_t *hmap, 
+    KEYTYPE key, 
+    VALTYPE val,
+    int update_type,
+    VALTYPE *ptr_oldval
     )
 {
+  int status = 0;
   const size_t threshold = APPROX_85_PERCENT(hmap->size);
 
   /*
@@ -250,12 +250,12 @@ NAME(q_rhashmap_put)(
      */
     const size_t grow_limit = hmap->size + MAX_GROWTH_STEP;
     const size_t newsize = MIN(hmap->size << 1, grow_limit);
-    if (q_rhashmap_resize(hmap, newsize) != 0) {
-      return 0;
-    }
+    status = q_rhashmap_resize(hmap, newsize); cBYE(status);
   }
-
-  return q_rhashmap_insert(hmap, key, val);
+  status = q_rhashmap_insert(hmap, key, val, update_type, ptr_oldval);
+  cBYE(status);
+BYE:
+  return status;
 }
 
 /*
@@ -263,25 +263,31 @@ NAME(q_rhashmap_put)(
  *
  * => If key was present, return its associated value; otherwise NULL.
  */
-__VALTYPE__ 
-NAME(q_rhashmap_del)(
-    hashmap_type *hmap, 
-    __KEYTYPE__ key
+int
+q_rhashmap_del(
+    q_rhashmap_t *hmap, 
+    KEYTYPE key,
+    bool *ptr_key_exists,
+    VALTYPE *ptr_oldval
     )
 {
+  int status = 0;
   const size_t threshold = APPROX_40_PERCENT(hmap->size);
-  const uint32_t hash = murmurhash3(&key, sizeof(__KEYTYPE__), hmap->hashkey);
+  const uint32_t hash = murmurhash3(&key, sizeof(KEYTYPE), hmap->hashkey);
   unsigned n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
-  bucket_type *bucket;
-  __VALTYPE__ val;
+  q_rh_bucket_t *bucket;
+  *ptr_oldval = 0;
 
 probe:
   /*
    * The same probing logic as in the lookup function.
    */
   bucket = &hmap->buckets[i];
-  if (!bucket->key || n > bucket->psl) {
-    return 0;
+  if (bucket->key == 0 ) { 
+    *ptr_key_exists = false; goto BYE;
+  }
+  if ( n > bucket->psl ) { 
+    *ptr_key_exists = false; goto BYE;
   }
   ASSERT(validate_psl_p(hmap, bucket, i));
 
@@ -292,21 +298,21 @@ probe:
     goto probe;
   }
 
-  /*
-   * Free the bucket.
-   */
-  if ((hmap->flags & RHM_NOCOPY) == 0) {
-    bucket->key = 0; // free(bucket->key);
-  }
-  val = bucket->val;
+  // Free the bucket.
+  bucket->key  = 0; 
+  *ptr_oldval  = bucket->val;
+  *ptr_key_exists = true;
+  bucket->val  = 0; 
+  // TODO Should we do this? bucket->hash = 0; 
+  // TODO Should we do this? bucket->psl  = 0; 
   hmap->nitems--;
 
   /*
    * The probe sequence must be preserved in the deletion case.
    * Use the backwards-shifting method to maintain low variance.
    */
-  for (;;) {
-    bucket_type *nbucket;
+  for ( ; ; ) {
+    q_rh_bucket_t *nbucket = NULL;
 
     bucket->key = 0;
 
@@ -333,9 +339,10 @@ probe:
    */
   if (hmap->nitems > hmap->minsize && hmap->nitems < threshold) {
     size_t newsize = MAX(hmap->size >> 1, hmap->minsize);
-    (void)q_rhashmap_resize(hmap, newsize);
+     status = q_rhashmap_resize(hmap, newsize); cBYE(status);
   }
-  return val;
+BYE:
+  return status;
 }
 
 /*
@@ -344,14 +351,14 @@ probe:
  * => If size is non-zero, then pre-allocate the given number of buckets;
  * => If size is zero, then a default minimum is used.
  */
-hashmap_type *
-NAME(q_rhashmap_create)(
+q_rhashmap_t *
+q_rhashmap_create(
       size_t size
         )
 {
-  hashmap_type *hmap;
+  q_rhashmap_t *hmap = NULL;
 
-  hmap = calloc(1, sizeof(hashmap_type));
+  hmap = calloc(1, sizeof(q_rhashmap_t));
   if (!hmap) {
     return NULL;
   }
@@ -371,10 +378,11 @@ NAME(q_rhashmap_create)(
  * => It is the responsibility of the caller to remove elements if needed.
  */
 void
-NAME(q_rhashmap_destroy)(
-    hashmap_type *hmap
+q_rhashmap_destroy(
+    q_rhashmap_t *ptr_hmap
     )
 {
-  free(hmap->buckets);
-  free(hmap);
+  free(ptr_hmap->buckets);
+  free(ptr_hmap);
+  ptr_hmap = NULL;
 }

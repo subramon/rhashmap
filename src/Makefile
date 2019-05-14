@@ -6,7 +6,6 @@ PROJ=		rhashmap
 
 CC=gcc
 CFLAGS+=	-std=gnu99 -Wall -Wextra -Werror
-CFLAGS+=	-O4
 CFLAGS+=	-g
 CFLAGS+=	-D_GNU_SOURCE -D_DEFAULT_SOURCE
 
@@ -30,7 +29,7 @@ DEBUG=		1
 endif
 
 ifeq ($(DEBUG),1)
-CFLAGS+=	-Og -DDEBUG -fno-omit-frame-pointer
+CFLAGS+=	-g -DDEBUG -fno-omit-frame-pointer
 else
 CFLAGS+=	-DNDEBUG
 endif
@@ -71,7 +70,7 @@ tests: $(OBJS) t_$(PROJ).o
 	$(CC) $(CFLAGS) $^ -o t_$(PROJ)
 	MALLOC_CHECK_=3 ./t_$(PROJ)
 
-q_tests: $(OBJS) test_$(PROJ).o
+q_tests: $(OBJS) test_q_$(PROJ).o
 	$(CC) $(CFLAGS) $^ -o test_q_$(PROJ)
 	MALLOC_CHECK_=3 ./test_q_$(PROJ)
 
