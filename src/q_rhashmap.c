@@ -34,11 +34,11 @@ static int __attribute__((__unused__))
 validate_psl_p(
     q_rhashmap_t *hmap, 
     const q_rh_bucket_t *bucket, 
-    unsigned i
+    uint32_t i
     )
 {
-  unsigned base_i = fast_rem32(bucket->hash, hmap->size, hmap->divinfo);
-  unsigned diff = (base_i > i) ? hmap->size - base_i + i : i - base_i;
+  uint32_t base_i = fast_rem32(bucket->hash, hmap->size, hmap->divinfo);
+  uint32_t diff = (base_i > i) ? hmap->size - base_i + i : i - base_i;
   return bucket->key == 0 || diff == bucket->psl;
 }
 
@@ -47,15 +47,21 @@ validate_psl_p(
  *
  * => If key is present, return its associated value; otherwise NULL.
  */
-VALTYPE
+int 
 q_rhashmap_get(
     q_rhashmap_t *hmap, 
-    KEYTYPE  key
+    KEYTYPE  key,
+    VALTYPE *ptr_val,
+    bool *ptr_is_found
     )
 {
+  int status = 0;
   const uint32_t hash = murmurhash3(&key, sizeof(KEYTYPE), hmap->hashkey);
-  unsigned n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
+  uint32_t n = 0; 
+  uint32_t i = fast_rem32(hash, hmap->size, hmap->divinfo);
   q_rh_bucket_t *bucket = NULL;
+  *ptr_is_found = false;
+  *ptr_val      = 0;
 
   /*
    * Lookup is a linear probe.
@@ -65,7 +71,9 @@ probe:
   ASSERT(validate_psl_p(hmap, bucket, i));
 
   if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
-    return bucket->val;
+    *ptr_val = bucket->val;
+    *ptr_is_found = true;
+    goto BYE;
   }
 
   /*
@@ -76,13 +84,16 @@ probe:
    * point of the algorithm in the insertion function.
    */
   if (!bucket->key || n > bucket->psl) {
-    return 0;
+    *ptr_is_found = false;
+    goto BYE;
   }
   n++;
 
   /* Continue to the next bucket. */
   i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
   goto probe;
+BYE:
+  return status;
 }
 
 /*
@@ -100,7 +111,7 @@ q_rhashmap_insert(
   int status = 0;
   const uint32_t hash = murmurhash3(&key, sizeof(KEYTYPE), hmap->hashkey);
   q_rh_bucket_t *bucket, entry;
-  unsigned i;
+  uint32_t i;
 
   // 0 is not a valid value for a key
   if ( key == 0 ) { go_BYE(-1); }
@@ -274,7 +285,7 @@ q_rhashmap_del(
   int status = 0;
   const size_t threshold = APPROX_40_PERCENT(hmap->size);
   const uint32_t hash = murmurhash3(&key, sizeof(KEYTYPE), hmap->hashkey);
-  unsigned n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
+  uint32_t n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
   q_rh_bucket_t *bucket;
   *ptr_oldval = 0;
 

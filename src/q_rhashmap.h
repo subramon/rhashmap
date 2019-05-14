@@ -31,13 +31,13 @@ typedef struct {
 } q_rh_bucket_t;
 
 typedef struct {
-	unsigned	size;
-	unsigned	nitems;
-	unsigned	flags;
+	uint32_t	size;
+	uint32_t	nitems;
+	uint32_t	flags;
 	uint64_t	divinfo;
 	q_rh_bucket_t *	buckets;
 	uint64_t	hashkey;
-	unsigned	minsize;
+	uint32_t	minsize;
 } q_rhashmap_t;
 
 extern q_rhashmap_t *	
@@ -49,10 +49,12 @@ q_rhashmap_destroy(
     q_rhashmap_t *
     );
 
-extern VALTYPE
+extern int
 q_rhashmap_get(
     q_rhashmap_t *, 
-    KEYTYPE key
+    KEYTYPE key,
+    VALTYPE *ptr_val,
+    bool *ptr_is_found
     );
 extern int
 q_rhashmap_put(

@@ -6,8 +6,8 @@ PROJ=		rhashmap
 
 CC=gcc
 CFLAGS+=	-std=gnu99 -Wall -Wextra -Werror
-CFLAGS+=	-O4
-# CFLAGS+=	-g
+# CFLAGS+=	-O4
+CFLAGS+=	-g
 CFLAGS+=	-D_GNU_SOURCE -D_DEFAULT_SOURCE
 
 #
