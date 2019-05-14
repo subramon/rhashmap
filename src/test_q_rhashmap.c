@@ -3,6 +3,17 @@
  */
 
 #include "q_rhashmap.h"
+//---------------------------------------
+static uint64_t
+RDTSC(
+    void
+    )
+{
+  unsigned int lo, hi;
+  asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
+  return ((uint64_t)hi << 32) | lo;
+}
+//---------------------------------------
 
 static int
 test_basic(
@@ -14,6 +25,7 @@ test_basic(
   VALTYPE ret, oldval;
   bool key_exists;
   KEYTYPE key = 123;
+  uint64_t t_stop, t_start = RDTSC();
 
   hmap = q_rhashmap_create(0);
   assert(hmap != NULL);
@@ -38,7 +50,8 @@ test_basic(
   if ( ret != 0 ) { exit(1); }
 
   q_rhashmap_destroy(hmap);
-  fprintf(stderr, "Passsed  %s \n", __func__);
+  t_stop = RDTSC();
+  fprintf(stderr, "Passsed  %s %" PRIu64 "\n", __func__, (t_stop-t_start));
 BYE:
   return status;
 }
@@ -52,7 +65,8 @@ test_add_a_lot(
   VALTYPE val, oldval;
   bool key_exists;
   KEYTYPE key;
-  uint32_t  N = 1048576;
+  uint32_t  N = 1024 * 1048576;
+  uint64_t t_stop, t_start = RDTSC();
 
   hmap = q_rhashmap_create(0);
   assert(hmap != NULL);
@@ -75,7 +89,8 @@ test_add_a_lot(
   }
   if ( hmap->nitems != 0 ) { go_BYE(-1); }
   q_rhashmap_destroy(hmap);
-  fprintf(stderr, "Passsed  %s \n", __func__);
+  t_stop = RDTSC();
+  fprintf(stderr, "Passsed  %s %" PRIu64 "\n", __func__, (t_stop-t_start));
 BYE:
   return status;
 }
@@ -89,6 +104,7 @@ test_incr(
   KEYTYPE key = 123;
   VALTYPE val = 0;
   int64_t sumval = 0;
+  uint64_t t_stop, t_start = RDTSC();
 
   hmap = q_rhashmap_create(0);
   if ( hmap == NULL ) { go_BYE(-1); }
@@ -101,7 +117,8 @@ test_incr(
     sumval += val;
   }
   q_rhashmap_destroy(hmap);
-  fprintf(stderr, "Passsed  %s \n", __func__);
+  t_stop = RDTSC();
+  fprintf(stderr, "Passsed  %s %" PRIu64 "\n", __func__, (t_stop-t_start));
 BYE:
   return status;
 }

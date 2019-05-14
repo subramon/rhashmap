@@ -6,7 +6,8 @@ PROJ=		rhashmap
 
 CC=gcc
 CFLAGS+=	-std=gnu99 -Wall -Wextra -Werror
-CFLAGS+=	-g
+CFLAGS+=	-O4
+# CFLAGS+=	-g
 CFLAGS+=	-D_GNU_SOURCE -D_DEFAULT_SOURCE
 
 #
@@ -71,7 +72,7 @@ tests: $(OBJS) t_$(PROJ).o
 	MALLOC_CHECK_=3 ./t_$(PROJ)
 
 q_tests: $(OBJS) test_q_$(PROJ).o
-	$(CC) $(CFLAGS) $^ -o test_q_$(PROJ)
+	$(CC) $(CFLAGS) $^ -o test_q_$(PROJ) 
 	MALLOC_CHECK_=3 ./test_q_$(PROJ)
 
 clean:
