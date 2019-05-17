@@ -42,7 +42,7 @@ test_basic(
     if ( oldval != chk_oldval ) { go_BYE(-1); }
   }
 
-  status = q_rhashmap_del(hmap, key, &key_exists, &oldval); cBYE(status);
+  status = q_rhashmap_del(hmap, key, &oldval, &key_exists); cBYE(status);
   if ( ! key_exists ) { go_BYE(-1); }
 
   status = q_rhashmap_get(hmap, key, &val, &is_found); cBYE(status);
@@ -101,7 +101,8 @@ test_add_a_lot(
     val = key = 0;
     for ( uint32_t i = 0; i < N; i++ ) { 
       ++val;
-      status = q_rhashmap_del(hmap, ++key, &key_exists, &oldval); cBYE(status);
+      status = q_rhashmap_del(hmap, ++key, &oldval, &key_exists); 
+      cBYE(status);
       if ( !key_exists ) { go_BYE(-1); }
       if ( oldval != val ) { go_BYE(-1); }
       //--- START: test occupancy ratio

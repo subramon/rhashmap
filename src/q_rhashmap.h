@@ -68,8 +68,16 @@ extern int
 q_rhashmap_del(
     q_rhashmap_t *, 
     KEYTYPE key,
-    bool *ptr_key_exists,
-    VALTYPE *ptr_oldval
+    VALTYPE *ptr_oldval,
+    bool *ptr_is_found
+    );
+extern int 
+q_rhashmap_getn(
+    q_rhashmap_t *hmap, 
+    KEYTYPE *keys, // [n] 
+    VALTYPE *vals, // [n] 
+    uint32_t n,
+    bool *is_founds // [n]
     );
 
 #endif

@@ -96,6 +96,43 @@ BYE:
   return status;
 }
 
+int 
+q_rhashmap_getn(
+    q_rhashmap_t *hmap, 
+    KEYTYPE *keys, // [nkeys] 
+    VALTYPE *vals, // [nkeys] 
+    uint32_t nkeys,
+    bool *is_founds // [nkeys]
+    )
+{
+  int status = 0;
+  for ( uint32_t j = 0; j < nkeys; j++ ) {
+    const uint32_t hash = murmurhash3(&(keys[j]), 
+        sizeof(KEYTYPE), hmap->hashkey);
+    uint32_t n = 0; 
+    uint32_t i = fast_rem32(hash, hmap->size, hmap->divinfo);
+    q_rh_bucket_t *bucket = NULL;
+    is_founds[j] = false;
+    vals[j]     = 0;
+
+probe:
+    bucket = &hmap->buckets[i];
+    ASSERT(validate_psl_p(hmap, bucket, i));
+
+    if ( ( bucket->hash == hash ) && ( bucket->key == keys[j] ) ) {
+      vals[j] = bucket->val;
+      is_founds[j] = true;
+      break;
+    }
+    if (!bucket->key || n > bucket->psl) {
+      break; // not found
+    }
+    n++;
+    i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
+    goto probe;
+  }
+  return status;
+}
 /*
  * rhashmap_insert: internal rhashmap_put(), without the resize.
  */
@@ -278,8 +315,8 @@ int
 q_rhashmap_del(
     q_rhashmap_t *hmap, 
     KEYTYPE key,
-    bool *ptr_key_exists,
-    VALTYPE *ptr_oldval
+    VALTYPE *ptr_oldval,
+    bool *ptr_is_found
     )
 {
   int status = 0;
@@ -295,10 +332,10 @@ probe:
    */
   bucket = &hmap->buckets[i];
   if (bucket->key == 0 ) { 
-    *ptr_key_exists = false; goto BYE;
+    *ptr_is_found = false; goto BYE;
   }
   if ( n > bucket->psl ) { 
-    *ptr_key_exists = false; goto BYE;
+    *ptr_is_found = false; goto BYE;
   }
   ASSERT(validate_psl_p(hmap, bucket, i));
 
@@ -312,7 +349,7 @@ probe:
   // Free the bucket.
   bucket->key  = 0; 
   *ptr_oldval  = bucket->val;
-  *ptr_key_exists = true;
+  *ptr_is_found = true;
   bucket->val  = 0; 
   // TODO Should we do this? bucket->hash = 0; 
   // TODO Should we do this? bucket->psl  = 0; 
