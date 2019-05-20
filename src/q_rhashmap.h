@@ -9,7 +9,7 @@
 #define _RHASHMAP_H_
 
 #define	Q_RHM_SET  1
-#define	Q_RHM_INCR 2
+#define	Q_RHM_ADD 2
 
 #define KEYTYPE uint64_t
 #define VALTYPE  int64_t
@@ -74,10 +74,9 @@ q_rhashmap_del(
 extern int 
 q_rhashmap_getn(
     q_rhashmap_t *hmap, 
-    KEYTYPE *keys, // [n] 
-    VALTYPE *vals, // [n] 
-    uint32_t n,
-    bool *is_founds // [n]
+    KEYTYPE *keys, // [nkeys] 
+    VALTYPE *vals, // [nkeys] 
+    uint32_t nkeys
     );
 
 #endif

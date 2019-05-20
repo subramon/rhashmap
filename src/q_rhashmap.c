@@ -101,8 +101,8 @@ q_rhashmap_getn(
     q_rhashmap_t *hmap, 
     KEYTYPE *keys, // [nkeys] 
     VALTYPE *vals, // [nkeys] 
-    uint32_t nkeys,
-    bool *is_founds // [nkeys]
+    uint32_t nkeys
+    // we won't do is_found for the first implementation
     )
 {
   int status = 0;
@@ -112,7 +112,6 @@ q_rhashmap_getn(
     uint32_t n = 0; 
     uint32_t i = fast_rem32(hash, hmap->size, hmap->divinfo);
     q_rh_bucket_t *bucket = NULL;
-    is_founds[j] = false;
     vals[j]     = 0;
 
 probe:
@@ -121,7 +120,6 @@ probe:
 
     if ( ( bucket->hash == hash ) && ( bucket->key == keys[j] ) ) {
       vals[j] = bucket->val;
-      is_founds[j] = true;
       break;
     }
     if (!bucket->key || n > bucket->psl) {
@@ -184,7 +182,7 @@ probe:
       if ( update_type == Q_RHM_SET ) { 
         bucket->val = val;
       }
-      else if ( update_type == Q_RHM_INCR ) { 
+      else if ( update_type == Q_RHM_ADD ) { 
         bucket->val += val;
       }
       else {

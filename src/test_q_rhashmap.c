@@ -140,7 +140,7 @@ test_incr(
 
   for ( int i = 0; i < 10000; i++ ) { 
     VALTYPE oldval;
-    status = q_rhashmap_put(hmap, key, ++val, Q_RHM_INCR, &oldval);
+    status = q_rhashmap_put(hmap, key, ++val, Q_RHM_ADD, &oldval);
     cBYE(status);
     if ( oldval != sumval ) { go_BYE(-1); }
     sumval += val;
