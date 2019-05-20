@@ -96,10 +96,45 @@ BYE:
   return status;
 }
 
+//------------------------------------------------------
+int 
+q_rhashmap_murmurhash(
+    KEYTYPE *keys, // input  [nkeys] 
+    uint32_t nkeys, // input 
+    uint64_t hmap_hashkey, // input 
+    uint32_t *hashes// output 
+    )
+{
+  int status = 0;
+  for ( uint32_t i = 0; i < nkeys; i++ ) {
+    hashes[i] = murmurhash3(&(keys[i]), 
+        sizeof(KEYTYPE), hmap_hashkey);
+  }
+  return status;
+}
+//------------------------------------------------------
+int 
+q_rhashmap_get_loc(
+    uint32_t *hashes, // input  [nkeys] 
+    uint32_t nkeys, // input 
+    uint32_t hmap_size, // input 
+    uint64_t hmap_divinfo, // input 
+    uint32_t *locs // [nkeys] 
+    )
+{
+  int status = 0;
+  for ( uint32_t i = 0; i < nkeys; i++ ) {
+    locs[i] = fast_rem32(hashes[i], hmap_size, hmap_divinfo);
+  }
+  return status;
+}
+//------------------------------------------------------
 int 
 q_rhashmap_getn(
     q_rhashmap_t *hmap, 
     KEYTYPE *keys, // [nkeys] 
+    uint32_t *hashes, // [nkeys]
+    uint32_t *locs, // [nkeys] 
     VALTYPE *vals, // [nkeys] 
     uint32_t nkeys
     // we won't do is_found for the first implementation
@@ -107,10 +142,9 @@ q_rhashmap_getn(
 {
   int status = 0;
   for ( uint32_t j = 0; j < nkeys; j++ ) {
-    const uint32_t hash = murmurhash3(&(keys[j]), 
-        sizeof(KEYTYPE), hmap->hashkey);
     uint32_t n = 0; 
-    uint32_t i = fast_rem32(hash, hmap->size, hmap->divinfo);
+    uint32_t i = locs[j];
+    uint32_t hash = hashes[j];
     q_rh_bucket_t *bucket = NULL;
     vals[j]     = 0;
 
@@ -120,10 +154,10 @@ probe:
 
     if ( ( bucket->hash == hash ) && ( bucket->key == keys[j] ) ) {
       vals[j] = bucket->val;
-      break;
+      continue;
     }
     if (!bucket->key || n > bucket->psl) {
-      break; // not found
+      continue; // not found
     }
     n++;
     i = fast_rem32(i + 1, hmap->size, hmap->divinfo);

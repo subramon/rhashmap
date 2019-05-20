@@ -153,13 +153,80 @@ BYE:
   return status;
 }
 //----------------------------------------------------------
+static int
+test_getn_simple(
+    void
+    )
+{
+  int status = 0;
+  KEYTYPE *keys = NULL;
+  VALTYPE *vals = NULL;
+  uint32_t *hashes = NULL;
+  uint32_t *locs = NULL;
+  int nkeys = 1234567;
+  q_rhashmap_t *hmap = NULL;
+  VALTYPE val = 456, oldval;
+  KEYTYPE key = 123;
+  uint64_t t_stop, t_start = RDTSC();
+
+
+  keys = calloc(nkeys, sizeof(KEYTYPE));
+  return_if_malloc_failed(keys);
+  vals = calloc(nkeys, sizeof(VALTYPE));
+  return_if_malloc_failed(vals);
+  hashes = calloc(nkeys,  sizeof(uint32_t));
+  return_if_malloc_failed(hashes);
+  locs = calloc(nkeys, sizeof(uint32_t));
+  return_if_malloc_failed(locs);
+
+  // create hmap and put 1 key in it 
+  hmap = q_rhashmap_create(0);
+  assert(hmap != NULL);
+
+  status = q_rhashmap_put(hmap, key, val, Q_RHM_SET, &oldval);
+  cBYE(status);
+  for ( int i = 0; i < nkeys; i++ ) {
+    if ( ( i % 2 ) == 0 ) {
+      keys[i] = key;
+    }
+    else {
+      keys[i] = -1 * key;
+    }
+  }
+
+  status = q_rhashmap_murmurhash(keys, nkeys, hmap->hashkey, hashes);
+  status = q_rhashmap_get_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+
+  status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
+  for ( int i = 0; i < nkeys; i++ ) {
+    if ( ( i % 2 ) == 0 ) { 
+      if ( vals[i] != val ) { go_BYE(-1); }
+    }
+    else {
+      if ( vals[i] == val ) { go_BYE(-1); }
+    }
+  }
+
+  q_rhashmap_destroy(hmap);
+  t_stop = RDTSC();
+  fprintf(stderr, "Passsed  %s %" PRIu64 "\n", __func__, (t_stop-t_start));
+BYE:
+  free_if_non_null(keys);
+  free_if_non_null(vals);
+  free_if_non_null(hashes);
+  free_if_non_null(locs);
+  return status;
+}
+//----------------------------------------------------------
 int
 main(void)
 {
   int status = 0;
-  status = test_basic();     cBYE(status);
-  status = test_add_a_lot(); cBYE(status);
-  status = test_incr();      cBYE(status);
+
+  status = test_basic();       cBYE(status);
+  status = test_add_a_lot();   cBYE(status);
+  status = test_incr();        cBYE(status);
+  status = test_getn_simple(); cBYE(status);
   puts("ok");
 BYE:
   return status;

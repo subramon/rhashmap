@@ -71,12 +71,30 @@ q_rhashmap_del(
     VALTYPE *ptr_oldval,
     bool *ptr_is_found
     );
+
 extern int 
 q_rhashmap_getn(
     q_rhashmap_t *hmap, 
-    KEYTYPE *keys, // [nkeys] 
-    VALTYPE *vals, // [nkeys] 
+    KEYTYPE  *keys, // [nkeys] 
+    uint32_t *hashes, // [nkeys] 
+    uint32_t *locs, // [nkeys] 
+    VALTYPE  *vals, // [nkeys] 
     uint32_t nkeys
     );
 
+extern int 
+q_rhashmap_murmurhash(
+    KEYTYPE *keys, // input  [nkeys] 
+    uint32_t nkeys, // input 
+    uint64_t hmap_hashkey, // input 
+    uint32_t *hashes// output 
+    );
+extern int 
+q_rhashmap_get_loc(
+    uint32_t *hashes, // input  [nkeys] 
+    uint32_t nkeys, // input 
+    uint32_t hmap_size, // input 
+    uint64_t hmap_divinfo, // input 
+    uint32_t *locs // [nkeys] 
+    );
 #endif
