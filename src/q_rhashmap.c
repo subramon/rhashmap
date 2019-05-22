@@ -19,6 +19,7 @@
  *	https://cs.uwaterloo.ca/research/tr/1986/CS-86-14.pdf
  */
 
+#include <omp.h>
 #include "q_rhashmap.h"
 #include "fastdiv.h"
 #include "utils.h"
@@ -465,4 +466,70 @@ q_rhashmap_destroy(
   free(ptr_hmap->buckets);
   free(ptr_hmap);
   ptr_hmap = NULL;
+}
+
+// Given 
+// (1) a set of keys 
+// (2) hash for each key
+// (3) value for each key
+// Update as follows. If j^{th} key found, then 
+// (A) set is_found[j]  to true
+// (B) update value with new value provided (either set or add)
+// Else, set is_found[j] to false
+int 
+q_rhashmap_setn(
+    q_rhashmap_t *hmap, 
+    int update_type,
+    KEYTYPE *keys, // [nkeys] 
+    uint32_t *hashes, // [nkeys]
+    VALTYPE *vals, // [nkeys] 
+    uint32_t nkeys,
+    uint8_t *is_founds // [nkeys bits] TODO: Change from byte to bit 
+    )
+{
+  int status = 0;
+  switch ( update_type ) { // quick sanity check 
+    case Q_RHM_SET : case Q_RHM_ADD : break;
+    default: go_BYE(-1); break;
+  }
+#pragma omp parallel
+  {
+    register uint32_t mytid = omp_get_thread_num();
+    register int num_threads = omp_get_num_threads();
+    register uint32_t hmap_size    = hmap->size;
+    register uint64_t hmap_divinfo = hmap->divinfo;
+    for ( uint32_t j = 0; j < nkeys; j++ ) {
+      register uint32_t hash = hashes[j];
+      register q_rh_bucket_t *buckets = hmap->buckets;
+      register KEYTYPE key = keys[j];
+      register VALTYPE val = vals[j];
+      uint32_t i = fast_rem32(hash, hmap_size, hmap_divinfo);
+      // Following so that 2 threads don't deal with same key
+      if ( ( hash % num_threads ) != mytid )  { continue; }
+      is_founds[j] = false;
+      uint32_t n = 0; 
+
+      for ( ; ; ) { // search until found 
+        q_rh_bucket_t *bucket = buckets + i;
+        ASSERT(validate_psl_p(hmap, bucket, i)); // TODO P4 needed?
+
+        if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
+          switch ( update_type ) {
+            case Q_RHM_SET : bucket->val = val; break; 
+            case Q_RHM_ADD : bucket->val += val; break;
+          }
+          is_founds[j] = true;
+          break; 
+        }
+        if ( ( !bucket->key ) || ( n > bucket->psl ) ) { // not found
+          is_founds[j] = false; 
+          break; 
+        }
+        n++;
+        i = fast_rem32(i + 1, hmap_size, hmap_divinfo);
+      }
+    }
+  }
+BYE:
+  return status;
 }

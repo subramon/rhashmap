@@ -97,4 +97,14 @@ q_rhashmap_get_loc(
     uint64_t hmap_divinfo, // input 
     uint32_t *locs // [nkeys] 
     );
+extern int 
+q_rhashmap_setn(
+    q_rhashmap_t *hmap, 
+    int update_type,
+    KEYTYPE *keys, // [nkeys] 
+    uint32_t *hashes, // [nkeys]
+    VALTYPE *vals, // [nkeys] 
+    uint32_t nkeys,
+    uint8_t *is_founds // [nkeys bits]
+    );
 #endif
