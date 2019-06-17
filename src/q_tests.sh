@@ -6,6 +6,8 @@ if [ $# != 0 ] && [ $# != 1 ]; then
 fi
 if [ $# = 1 ]; then
   TESTNUM=$1
+else
+  TESTNUM=0
 fi
 
 CFLAGS=" -std=gnu99 -Wall -Wextra -Werror -fopenmp -g -D_GNU_SOURCE -D_DEFAULT_SOURCE -Wno-unknown-warning-option  -Wstrict-prototypes -Wmissing-prototypes -Wpointer-arith -Wmissing-declarations -Wredundant-decls -Wnested-externs -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wold-style-definition -Wsuggest-attribute=noreturn -Wduplicated-cond -Wmisleading-indentation -Wnull-dereference -Wduplicated-branches -Wrestrict "
@@ -14,7 +16,7 @@ VG=" valgrind --leak-check=full --show-leak-kinds=all  "
 FILES=" q_rhashmap.c murmurhash.c "
 VG="" # Uncomment this line if you do not want Valgrind to run
 
-if [ $TESTNUM = "" ]; then 
+if [ $TESTNUM = 0 ]; then 
   ls test_q_rhashmap_*.c > _files
 else
   ls test_q_rhashmap_*.c | grep $TESTNUM > _files
@@ -28,7 +30,7 @@ while read line; do
   if [ "$VG" != "" ]; then 
     grep "0 errors from 0 contexts" _err 1>/dev/null 2>&1
   fi
-  nfiles=`expr $nfiles + 1 `=
+  nfiles=`expr $nfiles + 1 `
 done < _files
 if [ $nfiles = 0 ]; then echo "ERROR: No files to test"; exit 1; fi
 
@@ -42,17 +44,12 @@ cp preamble.tex $texfile
 echo "\\title{Unit Tests for RhashMap in Q}" >> $texfile
 while read line; do
   echo "Documenting $line to $texfile"
-  cat $line | grep '\/\/C'  | \
-  sed s'/\/\/C/ /'g | \
-  sed s'/^test_q_rha*.*:/ /'g | \
-  sed s'/^[ ]*//'g >> _tempf
-  cat _tempf >> $texfile
-  echo "========="
 
   cat $line | grep '\/\/C'  | \
   sed s'/\/\/C/ /'g | \
   sed s'/^test_q_rha*.*:/ /'g | \
-  sed s'/^[ ]*//'g 
+  sed s'/^[ ]*//'g  > _tempf
+  cat _tempf >> $texfile
   
 done < _files
 

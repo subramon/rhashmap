@@ -120,7 +120,7 @@ q_rhashmap_get_loc(
     uint32_t nkeys, // input 
     uint32_t hmap_size, // input 
     uint64_t hmap_divinfo, // input 
-    uint32_t *locs // [nkeys] 
+    uint32_t *locs // output [nkeys] 
     )
 {
   int status = 0;
@@ -138,7 +138,7 @@ q_rhashmap_getn(
     uint32_t *locs, // [nkeys] 
     VALTYPE *vals, // [nkeys] 
     uint32_t nkeys
-    // we won't do is_found for the first implementation
+    // TODO P4 we won't do is_found for the first implementation
     )
 {
   int status = 0;
@@ -485,7 +485,7 @@ q_rhashmap_destroy(
 // (B) update value with new value provided (either set or add)
 // Else, set is_found[j] to false
 int 
-q_rhashmap_setn(
+q_rhashmap_putn(
     q_rhashmap_t *hmap, 
     int update_type,
     KEYTYPE *keys, // [nkeys] 

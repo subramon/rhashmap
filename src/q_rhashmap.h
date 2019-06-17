@@ -99,7 +99,7 @@ q_rhashmap_get_loc(
     uint32_t *locs // [nkeys] 
     );
 extern int 
-q_rhashmap_setn(
+q_rhashmap_putn(
     q_rhashmap_t *hmap, 
     int update_type,
     KEYTYPE *keys, // [nkeys] 
