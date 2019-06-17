@@ -84,14 +84,14 @@ q_rhashmap_getn(
     );
 
 extern int 
-q_rhashmap_murmurhash(
+q_rhashmap_mk_hash(
     KEYTYPE *keys, // input  [nkeys] 
     uint32_t nkeys, // input 
     uint64_t hmap_hashkey, // input 
     uint32_t *hashes// output 
     );
 extern int 
-q_rhashmap_get_loc(
+q_rhashmap_mk_loc(
     uint32_t *hashes, // input  [nkeys] 
     uint32_t nkeys, // input 
     uint32_t hmap_size, // input 
@@ -100,12 +100,13 @@ q_rhashmap_get_loc(
     );
 extern int 
 q_rhashmap_putn(
-    q_rhashmap_t *hmap, 
-    int update_type,
-    KEYTYPE *keys, // [nkeys] 
-    uint32_t *hashes, // [nkeys]
-    VALTYPE *vals, // [nkeys] 
-    uint32_t nkeys,
-    uint8_t *is_founds // [nkeys bits]
+    q_rhashmap_t *hmap,  // INPUT
+    int update_type, // INPUT
+    KEYTYPE *keys, // INPUT [nkeys] 
+    uint32_t *hashes, // INPUT [nkeys]
+    uint32_t *locs, // INPUT [nkeys]
+    VALTYPE *vals, // INPUT [nkeys] 
+    uint32_t nkeys, // INPUT
+    uint8_t *is_founds // OUTPUT [nkeys bits] TODO: Change from byte to bit 
     );
 #endif

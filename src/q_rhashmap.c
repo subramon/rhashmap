@@ -99,7 +99,7 @@ BYE:
 
 //------------------------------------------------------
 int 
-q_rhashmap_murmurhash(
+q_rhashmap_mk_hash(
     KEYTYPE *keys, // input  [nkeys] 
     uint32_t nkeys, // input 
     uint64_t hmap_hashkey, // input 
@@ -107,15 +107,16 @@ q_rhashmap_murmurhash(
     )
 {
   int status = 0;
+  int chunk_size = 1024;
+#pragma omp parallel for schedule(static, chunk_size)
   for ( uint32_t i = 0; i < nkeys; i++ ) {
-    hashes[i] = murmurhash3(&(keys[i]), 
-        sizeof(KEYTYPE), hmap_hashkey);
+    hashes[i] = murmurhash3(&(keys[i]), sizeof(KEYTYPE), hmap_hashkey);
   }
   return status;
 }
 //------------------------------------------------------
 int 
-q_rhashmap_get_loc(
+q_rhashmap_mk_loc(
     uint32_t *hashes, // input  [nkeys] 
     uint32_t nkeys, // input 
     uint32_t hmap_size, // input 
@@ -124,6 +125,8 @@ q_rhashmap_get_loc(
     )
 {
   int status = 0;
+  int chunk_size = 1024;
+#pragma omp parallel for schedule(static, chunk_size)
   for ( uint32_t i = 0; i < nkeys; i++ ) {
     locs[i] = fast_rem32(hashes[i], hmap_size, hmap_divinfo);
   }
@@ -132,12 +135,12 @@ q_rhashmap_get_loc(
 //------------------------------------------------------
 int 
 q_rhashmap_getn(
-    q_rhashmap_t *hmap, 
-    KEYTYPE *keys, // [nkeys] 
-    uint32_t *hashes, // [nkeys]
-    uint32_t *locs, // [nkeys] 
-    VALTYPE *vals, // [nkeys] 
-    uint32_t nkeys
+    q_rhashmap_t *hmap, // INPUT
+    KEYTYPE *keys, // INPUT: [nkeys] 
+    uint32_t *hashes, // INPUT [nkeys]
+    uint32_t *locs, // INPUT [nkeys] 
+    VALTYPE *vals, // OUTPUT [nkeys] 
+    uint32_t nkeys // INPUT 
     // TODO P4 we won't do is_found for the first implementation
     )
 {
@@ -489,17 +492,19 @@ q_rhashmap_destroy(
 // Else, set is_found[j] to false
 int 
 q_rhashmap_putn(
-    q_rhashmap_t *hmap, 
-    int update_type,
-    KEYTYPE *keys, // [nkeys] 
-    uint32_t *hashes, // [nkeys]
-    VALTYPE *vals, // [nkeys] 
-    uint32_t nkeys,
-    uint8_t *is_founds // [nkeys bits] TODO: Change from byte to bit 
+    q_rhashmap_t *hmap,  // INPUT
+    int update_type, // INPUT
+    KEYTYPE *keys, // INPUT [nkeys] 
+    uint32_t *hashes, // INPUT [nkeys]
+    uint32_t *locs, // INPUT [nkeys]
+    VALTYPE *vals, // INPUT [nkeys] 
+    uint32_t nkeys, // INPUT
+    uint8_t *is_founds // OUTPUT [nkeys bits] TODO: Change from byte to bit 
     )
 {
   int status = 0;
-  switch ( update_type ) { // quick sanity check 
+  // quick sanity check 
+  switch ( update_type ) { 
     case Q_RHM_SET : case Q_RHM_ADD : break;
     default: go_BYE(-1); break;
   }
@@ -514,7 +519,7 @@ q_rhashmap_putn(
       register q_rh_bucket_t *buckets = hmap->buckets;
       register KEYTYPE key = keys[j];
       register VALTYPE val = vals[j];
-      uint32_t i = fast_rem32(hash, hmap_size, hmap_divinfo);
+      uint32_t i = locs[j]; // fast_rem32(hash, hmap_size, hmap_divinfo);
       // Following so that 2 threads don't deal with same key
       if ( ( hash % num_threads ) != mytid )  { continue; }
       is_founds[j] = false;

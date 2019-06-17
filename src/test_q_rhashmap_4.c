@@ -65,21 +65,23 @@ test_multi_set(
   //C \item Update value of all keys to 2. 
   for ( int i = 0; i < nkeys; i++ ) { vals[i] = 2; }
   //C \item Create hashes for all the keys
-  status = q_rhashmap_murmurhash(keys, nkeys, hmap->hashkey, hashes);
+  status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
   cBYE(status);
+  //C \item Initialize arrray locs, the first probe location for each key
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
   //C \item Use putn() to update keys in one call (instead of a loop)
   //C Notice that because of
   //C non-uniqueness, the same key may be written to more than once. 
   //C However, all writes have the same value.
-  status = q_rhashmap_putn(hmap, update_type, keys, hashes, vals, nkeys, 
-      is_founds);
+  status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
+      vals, nkeys, is_founds);
   //C \item Verify that is\_found for all keys is true since they have 
   //C already been inserted with value 1
   for ( int i = 0; i < nkeys; i++ ) { 
     if ( !is_founds[i] ) { go_BYE(-1); }
   }
   //C \item Initialize arrray locs, the first probe location for each key
-  status = q_rhashmap_get_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
   //C \item Get values for all keys 
   status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
@@ -103,15 +105,17 @@ test_multi_set(
   //C \item Set values for all keys to 2
   for ( int i = 0; i < nkeys; i++ ) { vals[i] = 2; }
   //C \item Create hashes for all keys
-  status = q_rhashmap_murmurhash(keys, nkeys, hmap->hashkey, hashes);
+  status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
   cBYE(status);
+  //C \item Initialize arrray locs, the first probe location for each key
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
   //C \item Use {\tt putn()} and update type = ADD to add 2 to values of all
   //C keys
   update_type = Q_RHM_ADD;
-  status = q_rhashmap_putn(hmap, update_type, keys, hashes, vals, nkeys, 
-      is_founds);
+  status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
+      vals, nkeys, is_founds);
   //C \item Use {\tt getn()} to get all keys that were put in and ascertain value = 1+2.
-  status = q_rhashmap_get_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
   status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
   for ( int i = 0; i < nkeys; i++ ) { 
