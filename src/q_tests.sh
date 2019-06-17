@@ -57,4 +57,6 @@ echo "\\end{document}" >> $texfile
 latex2pdf $texfile > $pdffile
 cp $pdffile /tmp/
 
+rm a.out _*.tex _out _err _files \
+  _tempf _q_tests.out _q_tests.aux _q_tests.log
 echo "SUCCESS: Q tests for rhashmap succeeded"
