@@ -8,20 +8,21 @@
 #ifndef _RHASHMAP_H_
 #define _RHASHMAP_H_
 
-#define	Q_RHM_SET  1
-#define	Q_RHM_ADD 2
-
-#define KEYTYPE uint64_t
-#define VALTYPE  int64_t
-
 #include <assert.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "macros.h"
+
+#define	Q_RHM_SET  1
+#define	Q_RHM_ADD 2
+
+#define KEYTYPE uint64_t
+#define VALTYPE  int64_t
 
 typedef struct {
 	KEYTYPE  key; 
@@ -33,7 +34,6 @@ typedef struct {
 typedef struct {
 	uint32_t	size;
 	uint32_t	nitems;
-	uint32_t	flags;
 	uint64_t	divinfo;
 	q_rh_bucket_t *	buckets;
 	uint64_t	hashkey;

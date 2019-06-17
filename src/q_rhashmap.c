@@ -392,8 +392,8 @@ probe:
   *ptr_oldval  = bucket->val;
   *ptr_is_found = true;
   bucket->val  = 0; 
-  // TODO Should we do this? bucket->hash = 0; 
-  // TODO Should we do this? bucket->psl  = 0; 
+  bucket->hash = 0; 
+  bucket->psl  = 0; 
   hmap->nitems--;
 
   /*
@@ -404,6 +404,9 @@ probe:
     q_rh_bucket_t *nbucket = NULL;
 
     bucket->key = 0;
+    bucket->val  = 0; 
+    bucket->hash = 0; 
+    bucket->psl  = 0; 
 
     i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
     nbucket = &hmap->buckets[i];
