@@ -23,6 +23,7 @@ test_basic(
   //C \section{Basic test}
   //C Simplest test.
   int status = 0;
+  int np = 0; // num_probes
   q_rhashmap_t *hmap = NULL;
   VALTYPE val = 0, oldval;
   bool key_exists;
@@ -42,12 +43,12 @@ test_basic(
   if ( is_found ) { go_BYE(-1); }
   if ( val != 0 ) { go_BYE(-1); }
 
-  //C \item Put the same key {\tt iters} times, starting with value 0 
+  //C \item Put the same key {\tt niters} times, starting with value 0 
   //C and incrementing value by 1 each time through the loop.
-  int iters = 10;
-  for ( int i = 0; i < 10; i++ ) { 
+  int niters = 10;
+  for ( int iter = 0; iter < niters; iter++ ) { 
     VALTYPE chk_oldval = val;
-    status = q_rhashmap_put(hmap, key, ++val, Q_RHM_SET, &oldval);
+    status = q_rhashmap_put(hmap, key, ++val, Q_RHM_SET, &oldval, &np);
     cBYE(status);
     if ( oldval != chk_oldval ) { go_BYE(-1); }
   }
@@ -56,7 +57,7 @@ test_basic(
   status = q_rhashmap_get(hmap, key, &val, &is_found); cBYE(status);
   //C Should be iters
   if ( !is_found ) { go_BYE(-1); }
-  if ( val != iters ) { go_BYE(-1); }
+  if ( val != niters ) { go_BYE(-1); }
 
   //C \item Delete the key.
   status = q_rhashmap_del(hmap, key, &oldval, &key_exists); cBYE(status);
@@ -78,7 +79,7 @@ test_basic(
   q_rhashmap_destroy(hmap);
   t_stop = RDTSC();
   //C \end{itemize}
-  fprintf(stderr, "Passsed  %s in cycles = %" PRIu64 "\n", __func__, (t_stop-t_start));
+  fprintf(stdout, "Passsed  %s in cycles = %" PRIu64 "\n", __func__, (t_stop-t_start));
 BYE:
   return status;
 }

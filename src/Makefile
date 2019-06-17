@@ -71,10 +71,6 @@ tests: $(OBJS) t_$(PROJ).o
 	$(CC) $(CFLAGS) $^ -o t_$(PROJ)
 	MALLOC_CHECK_=3 ./t_$(PROJ)
 
-q_tests: $(OBJS) test_q_$(PROJ).o
-	$(CC) $(CFLAGS) $^ -o test_q_$(PROJ) 
-	MALLOC_CHECK_=3 ./test_q_$(PROJ)
-
 clean:
 	libtool --mode=clean rm
 	rm -rf .libs *.o *.lo *.la t_$(PROJ)

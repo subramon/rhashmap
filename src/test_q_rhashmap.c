@@ -20,6 +20,7 @@ test_add_a_lot(
     )
 {
   int status = 0;
+  int np = 0; // number of probes
   q_rhashmap_t *hmap = NULL;
   VALTYPE val, oldval;
   bool key_exists;
@@ -36,7 +37,7 @@ test_add_a_lot(
     val = key = 0;
     for ( uint32_t i = 0; i < N; i++ ) {
       VALTYPE test_val;
-      status = q_rhashmap_put(hmap, ++key, ++val, Q_RHM_SET, &oldval);
+      status = q_rhashmap_put(hmap, ++key, ++val, Q_RHM_SET, &oldval, &np);
       cBYE(status);
       if ( oldval != 0 ) { go_BYE(-1); }
       if ( hmap->nitems != i+1 ) { go_BYE(-1); }

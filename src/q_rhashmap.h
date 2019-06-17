@@ -62,7 +62,8 @@ q_rhashmap_put(
     KEYTYPE key,
     VALTYPE val,
     int update_type,
-    VALTYPE *ptr_oldval
+    VALTYPE *ptr_oldval,
+    int *ptr_num_probes
     );
 extern int
 q_rhashmap_del(

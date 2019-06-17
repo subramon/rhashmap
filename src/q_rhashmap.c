@@ -175,13 +175,15 @@ q_rhashmap_insert(
     KEYTYPE key,
     VALTYPE val,
     int update_type,
-    VALTYPE *ptr_oldval
+    VALTYPE *ptr_oldval,
+    int *ptr_num_probes
     )
 {
   int status = 0;
   const uint32_t hash = murmurhash3(&key, sizeof(KEYTYPE), hmap->hashkey);
   q_rh_bucket_t *bucket, entry;
   uint32_t i;
+  int num_probes = 0;
 
   // 0 is not a valid value for a key
   if ( key == 0 ) { go_BYE(-1); }
@@ -244,6 +246,7 @@ probe:
 
     /* Continue to the next bucket. */
     ASSERT(validate_psl_p(hmap, bucket, i));
+    num_probes++;
     i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
     goto probe;
   }
@@ -255,6 +258,7 @@ probe:
   hmap->nitems++;
 
   ASSERT(validate_psl_p(hmap, bucket, i));
+  *ptr_num_probes = num_probes;
 BYE:
   return status;
 }
@@ -270,6 +274,7 @@ q_rhashmap_resize(
   const size_t oldsize = hmap->size;
   q_rh_bucket_t *newbuckets = NULL;
   const size_t len = newsize * sizeof(q_rh_bucket_t);
+  int num_probes = 0;
 
   if ( ( oldbuckets == NULL ) && ( oldsize != 0 ) ) { go_BYE(-1); }
   if ( ( oldbuckets != NULL ) && ( oldsize == 0 ) ) { go_BYE(-1); }
@@ -296,7 +301,8 @@ q_rhashmap_resize(
     if ( !bucket->key ) { continue; }
 
     VALTYPE oldval; // not needed except for signature
-    q_rhashmap_insert(hmap, bucket->key, bucket->val, Q_RHM_SET, &oldval);
+    q_rhashmap_insert(hmap, bucket->key, bucket->val, Q_RHM_SET, &oldval,
+        &num_probes);
   }
   free_if_non_null(oldbuckets);
 BYE:
@@ -315,7 +321,8 @@ q_rhashmap_put(
     KEYTYPE key, 
     VALTYPE val,
     int update_type,
-    VALTYPE *ptr_oldval
+    VALTYPE *ptr_oldval,
+    int *ptr_num_probes
     )
 {
   int status = 0;
@@ -333,7 +340,8 @@ q_rhashmap_put(
     const size_t newsize = MIN(hmap->size << 1, grow_limit);
     status = q_rhashmap_resize(hmap, newsize); cBYE(status);
   }
-  status = q_rhashmap_insert(hmap, key, val, update_type, ptr_oldval);
+  status = q_rhashmap_insert(hmap, key, val, update_type, 
+      ptr_oldval, ptr_num_probes);
   cBYE(status);
 BYE:
   return status;
