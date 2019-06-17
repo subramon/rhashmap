@@ -13,48 +13,6 @@ RDTSC(
   asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
   return ((uint64_t)hi << 32) | lo;
 }
-//---------------------------------------
-
-static int
-test_basic(
-    void
-    )
-{
-  int status = 0;
-  q_rhashmap_t *hmap = NULL;
-  VALTYPE val = 0, oldval;
-  bool key_exists;
-  KEYTYPE key = 123;
-  uint64_t t_stop, t_start = RDTSC();
-  bool is_found;
-
-  hmap = q_rhashmap_create(0);
-  assert(hmap != NULL);
-
-  status = q_rhashmap_get(hmap, key, &val, &is_found); cBYE(status);
-  if ( is_found ) { go_BYE(-1); }
-  if ( val != 0 ) { go_BYE(-1); }
-
-  for ( int i = 0; i < 10; i++ ) { 
-    VALTYPE chk_oldval = val;
-    status = q_rhashmap_put(hmap, key, ++val, Q_RHM_SET, &oldval);
-    cBYE(status);
-    if ( oldval != chk_oldval ) { go_BYE(-1); }
-  }
-
-  status = q_rhashmap_del(hmap, key, &oldval, &key_exists); cBYE(status);
-  if ( ! key_exists ) { go_BYE(-1); }
-
-  status = q_rhashmap_get(hmap, key, &val, &is_found); cBYE(status);
-  if ( is_found ) { go_BYE(-1); }
-  if ( val != 0 ) { go_BYE(-1); }
-
-  q_rhashmap_destroy(hmap);
-  t_stop = RDTSC();
-  fprintf(stderr, "Passsed  %s %" PRIu64 "\n", __func__, (t_stop-t_start));
-BYE:
-  return status;
-}
 //----------------------------------------------------------
 static int
 test_add_a_lot(
