@@ -503,11 +503,19 @@ q_rhashmap_putn(
     )
 {
   int status = 0;
+  int *is_new = NULL;
+  int nT = 0;
+  int num_new = 0;
+  bool need_sequential_put = false;
   // quick sanity check 
   switch ( update_type ) { 
     case Q_RHM_SET : case Q_RHM_ADD : break;
     default: go_BYE(-1); break;
   }
+  nT = omp_get_num_threads();
+  is_new = malloc(nT * sizeof(int));
+  return_if_malloc_failed(is_new);
+  for ( int i = 0; i < nT; i++ ) { is_new[i] = 0; }
 #pragma omp parallel
   {
     register uint32_t mytid = omp_get_thread_num();
@@ -522,7 +530,7 @@ q_rhashmap_putn(
       uint32_t i = locs[j]; // fast_rem32(hash, hmap_size, hmap_divinfo);
       // Following so that 2 threads don't deal with same key
       if ( ( hash % num_threads ) != mytid )  { continue; }
-      is_founds[j] = false;
+      is_founds[j] = 0;
       uint32_t n = 0; 
 
       for ( ; ; ) { // search until found 
@@ -531,21 +539,46 @@ q_rhashmap_putn(
 
         if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
           switch ( update_type ) {
-            case Q_RHM_SET : bucket->val = val; break; 
+            case Q_RHM_SET : bucket->val  = val; break; 
             case Q_RHM_ADD : bucket->val += val; break;
           }
-          is_founds[j] = true;
+          is_founds[j] = 1;
           break; 
         }
         if ( ( !bucket->key ) || ( n > bucket->psl ) ) { // not found
-          is_founds[j] = false; 
+          is_founds[j] = 0; 
           break; 
         }
         n++;
         i = fast_rem32(i + 1, hmap_size, hmap_divinfo);
       }
+      if ( is_founds[j] == 0 ) { 
+        if ( is_new[mytid] == 0 ) {
+          is_new[mytid] = 1;
+        }
+      }
     }
   }
+  for ( int i = 0; i < nT; i++ ) { 
+    if ( is_new[i] != 0 ) { need_sequential_put = true; }
+  }
+  if ( need_sequential_put ) { 
+    for ( unsigned int i = 0; i < nkeys; i++ ) {
+      if ( is_founds[i] == 0 ) {
+        VALTYPE oldval;
+        int num_probes; // TODO P2 Should do this properly
+        status = q_rhashmap_put(hmap, keys[i], vals[i], update_type,
+            &oldval, &num_probes);
+        cBYE(status);
+        // By definition, these keys don't exist and hence oldval == 0
+        if ( oldval != 0 ) { go_BYE(-1); }
+        num_new++;
+      }
+    }
+    // TODO P1: Should return num_new as diagnostic information
+    if ( num_new == 0 ) { go_BYE(-1); }
+  }
 BYE:
+  free_if_non_null(is_new);
   return status;
 }
