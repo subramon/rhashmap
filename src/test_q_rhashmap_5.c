@@ -2,6 +2,7 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 #include "q_rhashmap.h"
+#include "invariants.h"
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -62,8 +63,7 @@ test_grow_hmap_with_putn(
   //C \item Put these keys/vals into the hmap using putn()
   status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
       vals, nkeys, is_founds);
-  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
-  cBYE(status);
+  status = invariants(hmap); cBYE(status);
   //C \item Get values for all keys  using {\tt get()}
   for ( int i = 0; i < nkeys; i++ ) { 
     VALTYPE val;
@@ -72,16 +72,22 @@ test_grow_hmap_with_putn(
     if ( val != i+1 ) { go_BYE(-1); }
     if ( !is_found ) { go_BYE(-1); }
   }
+  status = invariants(hmap); cBYE(status);
   //C \item Using array hashes, create arrray locs, 
   //C the first probe location for each key. Note that we repeat this
   //C because even though keys and hashes have not changed, the size
   //C of the hash table has changed because of putn above
+  status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
+  cBYE(status);
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+  cBYE(status);
   //C \item Get values for all keys using {\tt getn()}
   status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
+  status = invariants(hmap); cBYE(status);
   //C Confirm that value for each key is 1
   for ( int i = 0; i < nkeys; i++ ) { 
-    if ( vals[i] != 1 ) { go_BYE(-1); }
+    if ( vals[i] != i+1 ) { go_BYE(-1); }
   }
   //C \item  destroy hmap.
   q_rhashmap_destroy(hmap);

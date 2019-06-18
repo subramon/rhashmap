@@ -3,6 +3,7 @@
  */
 
 #include "q_rhashmap.h"
+#include "invariants.h"
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -46,6 +47,7 @@ test_incr(
     sumval += val;
     if ( hmap->nitems != 1 ) { go_BYE(-1); }
   }
+  status = invariants(hmap); cBYE(status);
   q_rhashmap_destroy(hmap);
   t_stop = RDTSC();
   fprintf(stdout, "Passsed  %s in cycles = %" PRIu64 "\n", __func__, (t_stop-t_start));
