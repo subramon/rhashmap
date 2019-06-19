@@ -41,7 +41,7 @@ ofile_prefix=_q_tests
 texfile=${ofile_prefix}.tex
 pdffile=${ofile_prefix}.pdf
 cp preamble.tex $texfile
-echo "\\title{Unit Tests for RhashMap in Q}" >> $texfile
+cat invariants.tex >> $texfile
 while read line; do
   echo "Documenting $line to $texfile"
 

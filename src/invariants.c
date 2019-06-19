@@ -35,6 +35,8 @@ invariants(
   if ( hmap->divinfo == 0 ) { go_BYE(-1); }
   if ( hmap->buckets == NULL ) { go_BYE(-1); }
   if ( hmap->minsize == 0 ) { go_BYE(-1); }
+  if ( hmap->size == 0 ) { go_BYE(-1); }
+  if ( hmap->size < hmap->minsize ) { go_BYE(-1); }
   q_rh_bucket_t *buckets = hmap->buckets;
   // Allocate array "keys" of size nitems
   keys = malloc(hmap->nitems * sizeof(KEYTYPE));

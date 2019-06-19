@@ -561,9 +561,14 @@ q_rhashmap_putn(
       }
     }
   }
+  // Find out if new keys were provided in the above loop
   for ( int i = 0; i < nT; i++ ) { 
     if ( is_new[i] != 0 ) { need_sequential_put = true; }
   }
+  // If so, we have no choice but to put these in sequentially
+  // TODO P2: Currently, we are scannning the entire list of keys, 
+  // looking for the ones to add. Ideally, each thread should keep 
+  // a list of keys to be added and we should just scan that list.
   if ( need_sequential_put ) { 
     for ( unsigned int i = 0; i < nkeys; i++ ) {
       if ( is_founds[i] == 0 ) {
