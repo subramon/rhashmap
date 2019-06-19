@@ -3,6 +3,7 @@
  */
 #include "q_rhashmap.h"
 #include "invariants.h"
+#include <omp.h>
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -31,10 +32,14 @@ test_grow_hmap_with_putn(
   int update_type = Q_RHM_SET;
   uint8_t *is_founds = NULL;
   uint32_t *locs = NULL;
+  uint8_t *tids = NULL;
+  int nT = omp_get_num_threads();
 
 
   locs = calloc(nkeys, sizeof(uint32_t));
   return_if_malloc_failed(locs);
+  tids = calloc(nkeys, sizeof(uint32_t));
+  return_if_malloc_failed(tids);
   keys = calloc(nkeys, sizeof(KEYTYPE));
   return_if_malloc_failed(keys);
   vals = calloc(nkeys, sizeof(VALTYPE));
@@ -58,11 +63,13 @@ test_grow_hmap_with_putn(
   cBYE(status);
   //C \item Using array hashes, create arrray locs, 
   //C the first probe location for each key.
-  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
+  cBYE(status);
+  status = q_rhashmap_mk_tid(hashes, nkeys, hmap->size, tids);
   cBYE(status);
   //C \item Put these keys/vals into the hmap using putn()
   status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
-      vals, nkeys, is_founds);
+      tids, nT, vals, nkeys, is_founds);
   status = invariants(hmap); cBYE(status);
   //C \item Get values for all keys  using {\tt get()}
   for ( int i = 0; i < nkeys; i++ ) { 
@@ -79,7 +86,9 @@ test_grow_hmap_with_putn(
   //C of the hash table has changed because of putn above
   status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
   cBYE(status);
-  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
+  cBYE(status);
+  status = q_rhashmap_mk_tid(hashes, nkeys, hmap->size, tids);
   cBYE(status);
   //C \item Get values for all keys using {\tt getn()}
   status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
@@ -99,6 +108,7 @@ BYE:
   free_if_non_null(keys);
   free_if_non_null(vals);
   free_if_non_null(locs);
+  free_if_non_null(tids);
   free_if_non_null(hashes);
   free_if_non_null(is_founds);
   return status;

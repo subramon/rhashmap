@@ -3,6 +3,7 @@
  */
 #include "q_rhashmap.h"
 #include "invariants.h"
+#include <omp.h>
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -35,10 +36,14 @@ test_multi_set(
   int update_type = Q_RHM_SET;
   uint8_t *is_founds = NULL;
   uint32_t *locs = NULL;
+  uint8_t *tids = NULL;
+  int nT = omp_get_num_threads();
 
 
   locs = calloc(nkeys, sizeof(uint32_t));
   return_if_malloc_failed(locs);
+  tids = calloc(nkeys, sizeof(uint8_t));
+  return_if_malloc_failed(tids);
   keys = calloc(nkeys, sizeof(KEYTYPE));
   return_if_malloc_failed(keys);
   vals = calloc(nkeys, sizeof(VALTYPE));
@@ -70,13 +75,14 @@ test_multi_set(
   status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
   cBYE(status);
   //C \item Initialize arrray locs, the first probe location for each key
-  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
+  status = q_rhashmap_mk_tid(hashes, nkeys, nT, tids);
   //C \item Use putn() to update keys in one call (instead of a loop)
   //C Notice that because of
   //C non-uniqueness, the same key may be written to more than once. 
   //C However, all writes have the same value.
   status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
-      vals, nkeys, is_founds);
+      tids, nT, vals, nkeys, is_founds);
   cBYE(status);
   status = invariants(hmap); cBYE(status);
   //C \item Verify that is\_found for all keys is true since they have 
@@ -85,7 +91,7 @@ test_multi_set(
     if ( !is_founds[i] ) { go_BYE(-1); }
   }
   //C \item Initialize arrray locs, the first probe location for each key
-  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
   //C \item Get values for all keys 
   status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
@@ -114,15 +120,16 @@ test_multi_set(
   status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
   cBYE(status);
   //C \item Initialize arrray locs, the first probe location for each key
-  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
+  status = q_rhashmap_mk_tid(hashes, nkeys, nT, tids);
   //C \item Use {\tt putn()} and update type = ADD to add 2 to values of all
   //C keys
   update_type = Q_RHM_ADD;
   status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
-      vals, nkeys, is_founds);
+      tids, nT, vals, nkeys, is_founds);
   status = invariants(hmap); cBYE(status);
   //C \item Use {\tt getn()} to get all keys that were put in and ascertain value = 1+2.
-  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, hmap->divinfo, locs);
+  status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
   status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
   for ( int i = 0; i < nkeys; i++ ) { 
@@ -137,6 +144,7 @@ BYE:
   free_if_non_null(keys);
   free_if_non_null(vals);
   free_if_non_null(locs);
+  free_if_non_null(tids);
   free_if_non_null(hashes);
   free_if_non_null(is_founds);
   return status;

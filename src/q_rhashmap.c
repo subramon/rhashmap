@@ -120,15 +120,33 @@ q_rhashmap_mk_loc(
     uint32_t *hashes, // input  [nkeys] 
     uint32_t nkeys, // input 
     uint32_t hmap_size, // input 
-    uint64_t hmap_divinfo, // input 
     uint32_t *locs // output [nkeys] 
     )
 {
   int status = 0;
   int chunk_size = 1024;
+  uint64_t divinfo = fast_div32_init(hmap_size);
 #pragma omp parallel for schedule(static, chunk_size)
   for ( uint32_t i = 0; i < nkeys; i++ ) {
-    locs[i] = fast_rem32(hashes[i], hmap_size, hmap_divinfo);
+    locs[i] = fast_rem32(hashes[i], hmap_size, divinfo);
+  }
+  return status;
+}
+//------------------------------------------------------
+int 
+q_rhashmap_mk_tid(
+    uint32_t *hashes, // input  [nkeys] 
+    uint32_t nkeys, // input 
+    uint32_t nT, // input , number of threads
+    uint8_t *tids // output [nkeys] 
+    )
+{
+  int status = 0;
+  int chunk_size = 1024;
+  uint64_t divinfo = fast_div32_init(nT);
+#pragma omp parallel for schedule(static, chunk_size)
+  for ( uint32_t i = 0; i < nkeys; i++ ) {
+    tids[i] = fast_rem32(hashes[i], nT, divinfo);
   }
   return status;
 }
@@ -498,7 +516,9 @@ q_rhashmap_putn(
     int update_type, // INPUT
     KEYTYPE *keys, // INPUT [nkeys] 
     uint32_t *hashes, // INPUT [nkeys]
-    uint32_t *locs, // INPUT [nkeys]
+    uint32_t *locs, // INPUT [nkeys] -- starting point for probe
+    uint8_t *tids, // INPUT [nkeys] -- thread who should work on it
+    int nT,
     VALTYPE *vals, // INPUT [nkeys] 
     uint32_t nkeys, // INPUT
     uint8_t *is_founds // OUTPUT [nkeys bits] TODO: Change from byte to bit 
@@ -506,24 +526,23 @@ q_rhashmap_putn(
 {
   int status = 0;
   int *is_new = NULL;
-  int nT = 0;
   int num_new = 0;
   bool need_sequential_put = false;
+  register uint32_t hmap_size    = hmap->size;
+  register uint64_t hmap_divinfo = hmap->divinfo;
   // quick sanity check 
   switch ( update_type ) { 
     case Q_RHM_SET : case Q_RHM_ADD : break;
     default: go_BYE(-1); break;
   }
-  nT = omp_get_num_threads();
   is_new = malloc(nT * sizeof(int));
   return_if_malloc_failed(is_new);
   for ( int i = 0; i < nT; i++ ) { is_new[i] = 0; }
+
 #pragma omp parallel
   {
+    // TODO P3 Can I avoid get_thread_num() in each iteration?
     register uint32_t mytid = omp_get_thread_num();
-    register int num_threads = omp_get_num_threads();
-    register uint32_t hmap_size    = hmap->size;
-    register uint64_t hmap_divinfo = hmap->divinfo;
     for ( uint32_t j = 0; j < nkeys; j++ ) {
       register uint32_t hash = hashes[j];
       register q_rh_bucket_t *buckets = hmap->buckets;
@@ -531,7 +550,7 @@ q_rhashmap_putn(
       register VALTYPE val = vals[j];
       uint32_t i = locs[j]; // fast_rem32(hash, hmap_size, hmap_divinfo);
       // Following so that 2 threads don't deal with same key
-      if ( ( hash % num_threads ) != mytid )  { continue; }
+      if ( tids[j] != mytid )  { continue; }
       is_founds[j] = 0;
       uint32_t n = 0; 
 

@@ -95,8 +95,14 @@ q_rhashmap_mk_loc(
     uint32_t *hashes, // input  [nkeys] 
     uint32_t nkeys, // input 
     uint32_t hmap_size, // input 
-    uint64_t hmap_divinfo, // input 
     uint32_t *locs // [nkeys] 
+    );
+extern int 
+q_rhashmap_mk_tid(
+    uint32_t *hashes, // input  [nkeys] 
+    uint32_t nkeys, // input 
+    uint32_t nT, // input , number of threads
+    uint8_t *tids // output [nkeys] 
     );
 extern int 
 q_rhashmap_putn(
@@ -105,6 +111,8 @@ q_rhashmap_putn(
     KEYTYPE *keys, // INPUT [nkeys] 
     uint32_t *hashes, // INPUT [nkeys]
     uint32_t *locs, // INPUT [nkeys]
+    uint8_t *tids, // INPUT [nkeys]
+    int nT,
     VALTYPE *vals, // INPUT [nkeys] 
     uint32_t nkeys, // INPUT
     uint8_t *is_founds // OUTPUT [nkeys bits] TODO: Change from byte to bit 
