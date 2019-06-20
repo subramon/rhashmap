@@ -27,8 +27,9 @@
 typedef struct {
 	KEYTYPE  key; 
 	VALTYPE val;
-	uint64_t	hash	: 32;
-	uint64_t	psl	: 16;
+        // TODO P4: Think through whether hash should be 64 bit
+	uint32_t hash;
+	uint16_t psl; // TODO P4: Confirm this is enough
 } q_rh_bucket_t;
 
 typedef struct {

@@ -52,7 +52,7 @@ test_add_a_lot(
       status = q_rhashmap_put(hmap, ++key, ++val, Q_RHM_SET, &oldval, &np);
       cBYE(status);
       //C After each put,
-      //C Verify that the number of items in the hmap increased by 1.
+      //C verify that the number of items in the hmap increased by 1.
       if ( oldval != 0 ) { go_BYE(-1); }
       if ( hmap->nitems != i+1 ) { go_BYE(-1); }
 
@@ -63,10 +63,10 @@ test_add_a_lot(
       if ( !is_found ) { go_BYE(-1); }
       if ( test_val != val ) { go_BYE(-1); }
       //C \item Check that number of items in hmap is less than 
-      //CX 90\% of size of hmap.
+      //C 90\% of size of hmap.
       if ( hmap->nitems > 0.9 * hmap->size ) { go_BYE(-1); }
       //C \item If number of items \(> 1024\), then number of items 
-      // should be at least 10\% of siz of hmap
+      //C should be at least 10\% of size of hmap
       if ( ( hmap->nitems > 1024 ) && 
             ( hmap->nitems < 0.1 * hmap->size ) ) { go_BYE(-1); }
       if ( hmap->size != curr_size ) { 
@@ -80,6 +80,7 @@ test_add_a_lot(
 
 
     val = key = 0;
+    //C \item Perform the next inner loop N times
     //C \begin{itemize}
     for ( uint32_t i = 0; i < N; i++ ) {
       ++val;

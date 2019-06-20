@@ -70,6 +70,7 @@ test_multi_set(
   }
   status = invariants(hmap); cBYE(status);
   //C \item Update value of all keys to 2. 
+  //C \begin{itemize}
   for ( int i = 0; i < nkeys; i++ ) { vals[i] = 2; }
   //C \item Create hashes for all the keys
   status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
@@ -85,6 +86,7 @@ test_multi_set(
       tids, nT, vals, nkeys, is_founds);
   cBYE(status);
   status = invariants(hmap); cBYE(status);
+  //C \end{itemize}
   //C \item Verify that is\_found for all keys is true since they have 
   //C already been inserted with value 1
   for ( int i = 0; i < nkeys; i++ ) { 
