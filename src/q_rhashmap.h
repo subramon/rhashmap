@@ -52,14 +52,14 @@ q_rhashmap_destroy(
 
 extern int
 q_rhashmap_get(
-    q_rhashmap_t *, 
+    q_rhashmap_t *hmap, 
     KEYTYPE key,
     VALTYPE *ptr_val,
     bool *ptr_is_found
     );
 extern int
 q_rhashmap_put(
-    q_rhashmap_t *, 
+    q_rhashmap_t *hmap, 
     KEYTYPE key,
     VALTYPE val,
     int update_type,
@@ -68,7 +68,7 @@ q_rhashmap_put(
     );
 extern int
 q_rhashmap_del(
-    q_rhashmap_t *, 
+    q_rhashmap_t *hmap, 
     KEYTYPE key,
     VALTYPE *ptr_oldval,
     bool *ptr_is_found
