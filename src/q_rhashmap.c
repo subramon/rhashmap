@@ -67,33 +67,33 @@ q_rhashmap_get(
   /*
    * Lookup is a linear probe.
    */
-probe:
-  bucket = &hmap->buckets[i];
-  ASSERT(validate_psl_p(hmap, bucket, i));
+  register uint64_t divinfo = hmap->divinfo;
+  register uint64_t size    = hmap->size;
+  for ( ; ; ) { 
+    bucket = &hmap->buckets[i];
+    ASSERT(validate_psl_p(hmap, bucket, i));
 
-  if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
-    *ptr_val = bucket->val;
-    *ptr_is_found = true;
-    goto BYE;
+    if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
+      *ptr_val = bucket->val;
+      *ptr_is_found = true;
+      break;
+    }
+
+    /*
+     * Stop probing if we hit an empty bucket; also, if we hit a
+     * bucket with PSL lower than the distance from the base location,
+     * then it means that we found the "rich" bucket which should
+     * have been captured, if the key was inserted -- see the central
+     * point of the algorithm in the insertion function.
+     */
+    if ( ( !bucket->key ) || ( n > bucket->psl ) ) {
+      *ptr_is_found = false;
+      break;
+    }
+    n++;
+    /* Continue to the next bucket. */
+    i = fast_rem32(i + 1, size, divinfo);
   }
-
-  /*
-   * Stop probing if we hit an empty bucket; also, if we hit a
-   * bucket with PSL lower than the distance from the base location,
-   * then it means that we found the "rich" bucket which should
-   * have been captured, if the key was inserted -- see the central
-   * point of the algorithm in the insertion function.
-   */
-  if (!bucket->key || n > bucket->psl) {
-    *ptr_is_found = false;
-    goto BYE;
-  }
-  n++;
-
-  /* Continue to the next bucket. */
-  i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
-  goto probe;
-BYE:
   return status;
 }
 
