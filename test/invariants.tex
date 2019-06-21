@@ -1,0 +1,65 @@
+\section{Invariants on Data Structure}
+\label{invariants}
+Data Structure from {\tt .h} file shown below.
+\begin{verbatim}
+typedef struct {
+	KEYTYPE  key; 
+	VALTYPE val;
+	uint64_t	hash	: 32;
+	uint64_t	psl	: 16;
+} q_rh_bucket_t;
+
+typedef struct {
+	uint32_t	size;
+	uint32_t	nitems;
+	uint64_t	divinfo;
+	q_rh_bucket_t *	buckets;
+	uint64_t	hashkey;
+	uint32_t	minsize;
+} q_rhashmap_t;
+
+\end{verbatim}
+
+\begin{invariant}
+divinfo \(\neq 0\)
+\end{invariant}
+
+\begin{invariant}
+nitems \(<\) size
+\end{invariant}
+
+\begin{invariant}
+size \(>\) 0
+\end{invariant}
+
+\begin{invariant}
+hashkley \(\neq\) 0
+\end{invariant}
+
+\begin{invariant}
+minsize \(>\) 0
+\end{invariant}
+
+\begin{invariant}
+minsize \(\leq\) size
+\end{invariant}
+
+\begin{invariant}
+buckets[i].key \(= 0 \Rightarrow\) 
+(i) buckets[i].hash = 0
+(ii) buckets[i].val = 0
+(ii) buckets[i].psl = 0
+\end{invariant}
+
+\begin{invariant}
+buckets[i].key \(\neq 0 \Rightarrow\) 
+(i) buckets[i].hash \(\neq 0\),
+(ii) buckets[i].val = 0,
+(ii) buckets[i].psl = 0
+\end{invariant}
+
+\begin{invariant}
+Keys are unique.
+  \(\exists i:\)  buckets[i].key = k \(\Rightarrow\) 
+  \(\not \exists j:\)  \( j \neq i \) {\bf and}  buckets[j].key = k 
+\end{invariant}

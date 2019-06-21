@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Mindaugas Rasiukevicius <rmind at noxt eu>
+ * Copyright (c) 2019 Ramesh Subramonian <subramonian@gmail.com>
  * All rights reserved.
  *
  * Use is subject to license terms, as specified in the LICENSE file.

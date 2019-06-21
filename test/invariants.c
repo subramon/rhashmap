@@ -28,10 +28,19 @@ invariants(
 {
   int status = 0;
   KEYTYPE *keys = NULL; uint32_t nkeys = 0;
-  if ( hmap == NULL ) { return 0; }
+  if ( hmap == NULL ) { go_BYE(-1); } 
+  if ( hmap->buckets == NULL ) { 
+    if ( hmap->size != 0 ) { go_BYE(-1); }
+    if ( hmap->nitems != 0 ) { go_BYE(-1); }
+    if ( hmap->divinfo != 0 ) { go_BYE(-1); }
+    if ( hmap->buckets != 0 ) { go_BYE(-1); }
+    if ( hmap->hashkey != 0 ) { go_BYE(-1); }
+    if ( hmap->minsize != 0 ) { go_BYE(-1); }
+    return 0; 
+  }
 
   if ( hmap->hashkey == 0 ) { go_BYE(-1); }
-  if ( hmap->nitems >= hmap->size ) { go_BYE(-1); }
+  if ( hmap->nitems > hmap->size ) { go_BYE(-1); }
   if ( hmap->divinfo == 0 ) { go_BYE(-1); }
   if ( hmap->buckets == NULL ) { go_BYE(-1); }
   if ( hmap->minsize == 0 ) { go_BYE(-1); }

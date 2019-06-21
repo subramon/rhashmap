@@ -1,4 +1,15 @@
+// TODO: Any advantages to size being a prime number?
+
 /*
+ * Copyright (c) 2019 Ramesh Subramonian <subramonian@gmail.com>
+ * All rights reserved.
+ *
+ * Use is subject to license terms, as specified in the LICENSE file.
+
+ This code was initially forked from the following. Subsequent to that, 
+ significant modifications have been made and new functionality added,
+ bugs fixes, ....
+
  * Copyright (c) 2017 Mindaugas Rasiukevicius <rmind at noxt eu>
  * All rights reserved.
  *
@@ -22,14 +33,66 @@
 #include <omp.h>
 #include "q_rhashmap.h"
 #include "fastdiv.h"
-#include "utils.h"
+#include "macros.h"
 
 #define	HASH_INIT_SIZE		(16)
 #define	MAX_GROWTH_STEP		(1024U * 1024)
 
-#define	APPROX_85_PERCENT(x)	(((x) * 870) >> 10)
-#define	APPROX_40_PERCENT(x)	(((x) * 409) >> 10)
+#define	LOW_WATER_MARK 0.4
+#define	HIGH_WATER_MARK 0.85
 
+/* Checks whether resize is needed. If so, calculates newsize */
+/* Resize needed when occupancy is too high or too low */
+static int
+calc_new_size(
+    uint32_t nitems, 
+    uint32_t minsize, 
+    uint32_t size, 
+    bool decreasing, 
+    /* true =>  just added an element and are concerned about sparsity
+     * false=> just added an element and are concerned about denseness
+    */
+    uint32_t *ptr_newsize,
+    bool *ptr_resize
+    )
+{
+  int status = 0;
+  *ptr_resize = false;
+  *ptr_newsize = 0;
+  uint32_t threshold;
+  if ( decreasing ) { 
+    /*
+     * If the load factor is less than threshold, then shrink by
+     * halving the size, but not more than the minimum size.
+     */
+    threshold = (uint32_t)(LOW_WATER_MARK * size);
+    if ( ( nitems > minsize ) && ( nitems < threshold ) ) {
+      *ptr_resize = true;
+      *ptr_newsize = MAX(size >> 1, minsize);
+    }
+  }
+  else {
+    /*
+     * If the load factor is more than the threshold, then resize.
+     */
+    threshold = (uint32_t)(0.85 * (float)size);
+    // TODO P4 Clean up the following code 
+    if ( nitems > threshold ) { 
+      *ptr_resize = true;
+      for ( ; nitems > threshold; ) { 
+        /*
+         * Grow the hash table by doubling its size, but with
+         * a limit of MAX_GROWTH_STEP.
+         */
+       // TODO: P4 Worry about overflow in addition below
+        const size_t grow_limit = size + MAX_GROWTH_STEP;
+        *ptr_newsize = MIN(size << 1, grow_limit);
+        threshold = (uint32_t)(0.85 * *ptr_newsize);
+      }
+    }
+  }
+  return status;
+}
 
 static int __attribute__((__unused__))
 validate_psl_p(
@@ -44,9 +107,12 @@ validate_psl_p(
 }
 
 /*
- * rhashmap_get: lookup an value given the key.
+ * q_rhashmap_get: lookup an value given the key.
  *
- * => If key is present, return its associated value; otherwise NULL.
+ * => If key is present, *ptr_val is set to its associated value
+ * and is_found is set to true
+ * => If key is absent, *ptr_val is set to 0
+ * and is_found is set to false
  */
 int 
 q_rhashmap_get(
@@ -163,8 +229,8 @@ q_rhashmap_getn(
     )
 {
   int status = 0;
-  int chunk_size = 1024;
-#pragma omp parallel for schedule(static, chunk_size)
+// UNDO  int chunk_size = 1024;
+// UNDO #pragma omp parallel for schedule(static, chunk_size)
   for ( uint32_t j = 0; j < nkeys; j++ ) {
     uint32_t n = 0; 
     uint32_t i = locs[j];
@@ -301,13 +367,14 @@ q_rhashmap_resize(
   const size_t len = newsize * sizeof(q_rh_bucket_t);
   int num_probes = 0;
 
-  fprintf(stderr, "Resizing to %llu ... \n", (unsigned long long int)newsize);
+  fprintf(stderr, "Resizing to %u ... \n", (uint32_t)newsize);
+  // some obvious logical checks
   if ( ( oldbuckets == NULL ) && ( oldsize != 0 ) ) { go_BYE(-1); }
   if ( ( oldbuckets != NULL ) && ( oldsize == 0 ) ) { go_BYE(-1); }
   if ( ( newsize <= 0 ) || ( newsize >= UINT_MAX ) )  { go_BYE(-1); }
   if ( newsize < hmap->nitems ) { go_BYE(-1); }
 
-  // Check for an overflow and allocate buckets.  
+  // allocate buckets.  
   newbuckets = malloc(len);
   return_if_malloc_failed(newbuckets);
   memset(newbuckets, '\0', len);
@@ -352,24 +419,11 @@ q_rhashmap_put(
     )
 {
   int status = 0;
-  uint32_t threshold = (uint32_t)(0.85 * (float)hmap->size);
+  uint32_t newsize; bool resize, decreasing = false;
 
-  /*
-   * If the load factor is more than the threshold, then resize.
-   */
-  uint32_t newsize;
-  // TODO: P2 Consider setting size to a prime number
-  // TODO: P4 Worry about overflow in addition below
-  if ( hmap->nitems > threshold ) { 
-    for ( ; hmap->nitems > threshold; ) { 
-      /*
-       * Grow the hash table by doubling its size, but with
-       * a limit of MAX_GROWTH_STEP.
-       */
-      const size_t grow_limit = hmap->size + MAX_GROWTH_STEP;
-      newsize = MIN(hmap->size << 1, grow_limit);
-      threshold = (uint32_t)(0.85 * newsize);
-    }
+  status = calc_new_size(hmap->nitems, hmap->minsize, hmap->size, 
+      decreasing, &newsize, &resize);
+  if ( resize ) { 
     status = q_rhashmap_resize(hmap, newsize); cBYE(status);
   }
 
@@ -394,11 +448,11 @@ q_rhashmap_del(
     )
 {
   int status = 0;
-  const size_t threshold = APPROX_40_PERCENT(hmap->size);
   const uint32_t hash = murmurhash3(&key, sizeof(KEYTYPE), hmap->hashkey);
   uint32_t n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
   q_rh_bucket_t *bucket;
   *ptr_oldval = 0;
+  bool decreasing = true, resize; uint32_t newsize;
 
 probe:
   /*
@@ -457,13 +511,10 @@ probe:
     *bucket = *nbucket;
     bucket = nbucket;
   }
-
-  /*
-   * If the load factor is less than threshold, then shrink by
-   * halving the size, but not more than the minimum size.
-   */
-  if ( ( hmap->nitems > hmap->minsize ) && ( hmap->nitems < threshold ) ) {
-    size_t newsize = MAX(hmap->size >> 1, hmap->minsize);
+  status = calc_new_size(hmap->nitems, hmap->minsize, hmap->size, 
+      decreasing, &newsize, &resize);
+  cBYE(status);
+  if ( resize ) {
     status = q_rhashmap_resize(hmap, newsize); cBYE(status);
   }
 BYE:
@@ -484,16 +535,15 @@ q_rhashmap_create(
   q_rhashmap_t *hmap = NULL;
 
   hmap = calloc(1, sizeof(q_rhashmap_t));
-  if (!hmap) {
-    return NULL;
-  }
+  if ( hmap == NULL ) { return NULL; }
+
   hmap->minsize = MAX(size, HASH_INIT_SIZE);
-  if (q_rhashmap_resize(hmap, hmap->minsize) != 0) {
+  if ( q_rhashmap_resize(hmap, hmap->minsize) != 0) {
     free(hmap);
     return NULL;
   }
-  ASSERT(hmap->buckets);
-  ASSERT(hmap->size);
+  if (hmap->buckets == NULL ) { WHEREAMI; return NULL; }
+  if (hmap->size    == 0    ) { WHEREAMI; return NULL; }
   return hmap;
 }
 
@@ -508,6 +558,14 @@ q_rhashmap_destroy(
     )
 {
   free(ptr_hmap->buckets);
+  ptr_hmap->buckets = NULL;
+  ptr_hmap->size = 0;
+  ptr_hmap->nitems = 0;
+  ptr_hmap->divinfo = 0;
+  ptr_hmap->buckets = 0;
+  ptr_hmap->hashkey = 0;
+  ptr_hmap->minsize = 0;
+
   free(ptr_hmap);
   ptr_hmap = NULL;
 }
@@ -606,8 +664,10 @@ q_rhashmap_putn(
         status = q_rhashmap_put(hmap, keys[i], vals[i], update_type,
             &oldval, &num_probes);
         cBYE(status);
-        // By definition, these keys don't exist and hence oldval == 0
-        if ( oldval != 0 ) { go_BYE(-1); }
+        /* Following has been commented out because it is a wrong check
+          By definition, these keys don't exist and hence oldval == 0
+          if ( oldval != 0 ) { go_BYE(-1); }
+        */
         num_new++;
       }
     }
