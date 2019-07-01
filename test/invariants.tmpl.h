@@ -1,4 +1,4 @@
 extern int
 invariants(
-    q_rhashmap_t *hmap
+    q_rhashmap___KV___t *hmap
     );

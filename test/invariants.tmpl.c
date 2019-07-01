@@ -2,16 +2,16 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "q_rhashmap.h"
-#include "invariants.h"
+#include "_q_rhashmap.h"
+#include "_invariants.h"
 static int
 compar_fn(
       const void *p1, 
       const void *p2
       )
 {
-  KEYTYPE k1 = *((const KEYTYPE *)p1);
-  KEYTYPE k2 = *((const KEYTYPE *)p2);
+  __KEYTYPE__ k1 = *((const __KEYTYPE__ *)p1);
+  __KEYTYPE__ k2 = *((const __KEYTYPE__ *)p2);
   if ( k1 < k2 ) { 
     return 1;
   }
@@ -23,11 +23,11 @@ compar_fn(
 //---------------------------------------
 int
 invariants(
-    q_rhashmap_t *hmap
+    q_rhashmap___KV___t *hmap
     )
 {
   int status = 0;
-  KEYTYPE *keys = NULL; uint32_t nkeys = 0;
+  __KEYTYPE__ *keys = NULL; uint32_t nkeys = 0;
   if ( hmap == NULL ) { go_BYE(-1); } 
   if ( hmap->buckets == NULL ) { 
     if ( hmap->size != 0 ) { go_BYE(-1); }
@@ -46,9 +46,9 @@ invariants(
   if ( hmap->minsize == 0 ) { go_BYE(-1); }
   if ( hmap->size == 0 ) { go_BYE(-1); }
   if ( hmap->size < hmap->minsize ) { go_BYE(-1); }
-  q_rh_bucket_t *buckets = hmap->buckets;
+  q_rh_bucket___KV___t *buckets = hmap->buckets;
   // Allocate array "keys" of size nitems
-  keys = malloc(hmap->nitems * sizeof(KEYTYPE));
+  keys = malloc(hmap->nitems * sizeof(__KEYTYPE__));
   return_if_malloc_failed(keys);
   for ( unsigned int i = 0; i < hmap->size; i++ ) { 
     if ( buckets[i].key == 0 ) { 
@@ -63,7 +63,7 @@ invariants(
       keys[nkeys++] = buckets[i].key;
     }
   }
-  qsort(keys, nkeys, sizeof(KEYTYPE), compar_fn);
+  qsort(keys, nkeys, sizeof(__KEYTYPE__), compar_fn);
   // Sort array "keys"
   for ( unsigned int i = 1; i  < nkeys; i++ ) { 
     if ( keys[i] == keys[i-1] ) { go_BYE(-1); }

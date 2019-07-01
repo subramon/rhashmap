@@ -1,9 +1,10 @@
 /*
  * Use is subject to license terms, as specified in the LICENSE file.
  */
-#include "q_rhashmap.h"
-#include "invariants.h"
-#include <omp.h>
+#include "_q_rhashmap.h"
+#include "_invariants.h"
+#define VALTYPE  int64_t
+#define KEYTYPE uint64_t
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -29,7 +30,7 @@ test_multi_set(
   uint32_t *hashes = NULL;
   int nkeys         = 1048576;
   int n_unique_keys = 1024;
-  q_rhashmap_t *hmap = NULL;
+  q_rhashmap_I8_I8_t *hmap = NULL;
   VALTYPE oldval;
   // KEYTYPE key = 123;
   uint64_t t_stop, t_start = RDTSC();
@@ -65,7 +66,7 @@ test_multi_set(
   }
   //C \item Put these keys into the hmap using put()
   for ( int i = 0; i < nkeys; i++ ) {
-    status = q_rhashmap_put(hmap, keys[i], vals[i], Q_RHM_SET, &oldval, &np);
+    status = q_rhashmap_put_I8_I8(hmap, keys[i], vals[i], Q_RHM_SET, &oldval, &np);
     cBYE(status);
   }
   status = invariants(hmap); cBYE(status);
@@ -73,7 +74,7 @@ test_multi_set(
   //C \begin{itemize}
   for ( int i = 0; i < nkeys; i++ ) { vals[i] = 2; }
   //C \item Create hashes for all the keys
-  status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
+  status = q_rhashmap_mk_hash_I8(keys, nkeys, hmap->hashkey, hashes);
   cBYE(status);
   //C \item Initialize arrray locs, the first probe location for each key
   status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
@@ -82,7 +83,7 @@ test_multi_set(
   //C Notice that because of
   //C non-uniqueness, the same key may be written to more than once. 
   //C However, all writes have the same value.
-  status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
+  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
       tids, nT, vals, nkeys, is_founds);
   cBYE(status);
   status = invariants(hmap); cBYE(status);
@@ -95,7 +96,7 @@ test_multi_set(
   //C \item Initialize arrray locs, the first probe location for each key
   status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
   //C \item Get values for all keys 
-  status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
+  status = q_rhashmap_getn_I8_I8(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
   status = invariants(hmap); cBYE(status);
   //C Confirm that value for each key is 2
@@ -112,14 +113,14 @@ test_multi_set(
   for ( int i = 0; i < nkeys; i++ ) { vals[i] = 1; }
   //C Using {\tt put()}, insert all key/value pairs
   for ( int i = 0; i < nkeys; i++ ) { 
-    status = q_rhashmap_put(hmap, keys[i], vals[i], Q_RHM_SET, &oldval, &np);
+    status = q_rhashmap_put_I8_I8(hmap, keys[i], vals[i], Q_RHM_SET, &oldval, &np);
     cBYE(status);
   }
   status = invariants(hmap); cBYE(status);
   //C \item Set values for all keys to 2
   for ( int i = 0; i < nkeys; i++ ) { vals[i] = 2; }
   //C \item Create hashes for all keys
-  status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
+  status = q_rhashmap_mk_hash_I8(keys, nkeys, hmap->hashkey, hashes);
   cBYE(status);
   //C \item Initialize arrray locs, the first probe location for each key
   status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
@@ -127,12 +128,12 @@ test_multi_set(
   //C \item Use {\tt putn()} and update type = ADD to add 2 to values of all
   //C keys
   update_type = Q_RHM_ADD;
-  status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
+  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
       tids, nT, vals, nkeys, is_founds);
   status = invariants(hmap); cBYE(status);
   //C \item Use {\tt getn()} to get all keys that were put in and ascertain value = 1+2.
   status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
-  status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
+  status = q_rhashmap_getn_I8_I8(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
   for ( int i = 0; i < nkeys; i++ ) { 
     if ( vals[i] != 1+2 ) { go_BYE(-1); }

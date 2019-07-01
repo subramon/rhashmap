@@ -1,9 +1,10 @@
 /*
  * Use is subject to license terms, as specified in the LICENSE file.
  */
-#include "q_rhashmap.h"
-#include "invariants.h"
-#include <omp.h>
+#include "_q_rhashmap.h"
+#include "_invariants.h"
+#define VALTYPE  int64_t
+#define KEYTYPE uint64_t
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -26,7 +27,7 @@ test_rand_multi_set(
   KEYTYPE *keys = NULL;
   VALTYPE *vals = NULL;
   uint32_t *hashes = NULL;
-  q_rhashmap_t *hmap = NULL;
+  q_rhashmap_I8_I8_t *hmap = NULL;
   uint64_t t_stop, t_start = RDTSC();
   int update_type = Q_RHM_SET;
   uint8_t *is_founds = NULL;
@@ -68,14 +69,14 @@ test_rand_multi_set(
     //C \begin{itemize}
     for ( int i = 0; i < num_keys; i++ ) { vals[i] = 2; }
     //C \item Create hashes for all the keys
-    status = q_rhashmap_mk_hash(keys, num_keys, hmap->hashkey, hashes);
+    status = q_rhashmap_mk_hash_I8(keys, num_keys, hmap->hashkey, hashes);
     cBYE(status);
     //C \item Initialize arrray locs, the first probe location for each key
     status = q_rhashmap_mk_loc(hashes, num_keys, hmap->size, locs);
     //C \item Initialize arrray tids, for paralelization 
     status = q_rhashmap_mk_tid(hashes, num_keys, nT, tids);
     //C \item Use putn() to update keys in one call (instead of a loop)
-    status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
+    status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
         tids, nT, vals, num_keys, is_founds);
     cBYE(status);
     status = invariants(hmap); cBYE(status);
@@ -83,13 +84,13 @@ test_rand_multi_set(
     //C Confirm that all keys are found using get
     for ( int i = 0; i < num_keys; i++ ) { 
       VALTYPE val; bool is_found;
-      status = q_rhashmap_get(hmap, keys[i], &val, &is_found); cBYE(status);
+      status = q_rhashmap_get_I8_I8(hmap, keys[i], &val, &is_found); cBYE(status);
       if ( !is_found ) { go_BYE(-1); }
     }
     //C \item Get values for all keys using getn
-    status = q_rhashmap_mk_hash(keys, num_keys, hmap->hashkey, hashes);
+    status = q_rhashmap_mk_hash_I8(keys, num_keys, hmap->hashkey, hashes);
     status = q_rhashmap_mk_loc(hashes, num_keys, hmap->size, locs);
-    status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, num_keys);
+    status = q_rhashmap_getn_I8_I8(hmap, keys, hashes, locs, vals, num_keys);
     cBYE(status);
     status = invariants(hmap); cBYE(status);
     //C Confirm that all keys are found

@@ -2,8 +2,10 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "q_rhashmap.h"
-#include "invariants.h"
+#include "_q_rhashmap.h"
+#include "_invariants.h"
+#define VALTYPE  int64_t
+#define KEYTYPE uint64_t
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -22,7 +24,7 @@ test_add_a_lot(
 {
   int status = 0;
   int np = 0; // number of probes
-  q_rhashmap_t *hmap = NULL;
+  q_rhashmap_I8_I8_t *hmap = NULL;
   VALTYPE val, oldval;
   bool key_exists;
   KEYTYPE key;
@@ -49,7 +51,7 @@ test_add_a_lot(
       //C \item Put a unique (key,val). 
       //C In iterations \(i\) from 1 to N, 
       //C we put key as \(i\), value as \(i\).
-      status = q_rhashmap_put(hmap, ++key, ++val, Q_RHM_SET, &oldval, &np);
+      status = q_rhashmap_put_I8_I8(hmap, ++key, ++val, Q_RHM_SET, &oldval, &np);
       cBYE(status);
       //C After each put,
       //C verify that the number of items in the hmap increased by 1.
@@ -57,7 +59,7 @@ test_add_a_lot(
       if ( hmap->nitems != i+1 ) { go_BYE(-1); }
 
       //C \item Get the value for the key just inserted.
-      status = q_rhashmap_get(hmap, key, &test_val, &is_found); 
+      status = q_rhashmap_get_I8_I8(hmap, key, &test_val, &is_found); 
       cBYE(status);
       //C Verify that the value is correct.
       if ( !is_found ) { go_BYE(-1); }
@@ -67,7 +69,7 @@ test_add_a_lot(
       if ( hmap->nitems > 0.9 * hmap->size ) { go_BYE(-1); }
       //C \item If number of items \(> 1024\), then number of items 
       //C should be at least 10\% of size of hmap
-      if ( ( hmap->nitems > 1024 ) && 
+      if ( ( hmap->nitems > HASH_INIT_SIZE ) && 
             ( hmap->nitems < 0.1 * hmap->size ) ) { go_BYE(-1); }
       if ( hmap->size != curr_size ) { 
         curr_size = hmap->size;
@@ -85,14 +87,14 @@ test_add_a_lot(
     for ( uint32_t i = 0; i < N; i++ ) {
       ++val;
       //C \item Delete each key inserted.
-      status = q_rhashmap_del(hmap, ++key, &oldval, &key_exists); 
+      status = q_rhashmap_del_I8_I8(hmap, ++key, &oldval, &key_exists); 
       cBYE(status);
       if ( !key_exists ) { go_BYE(-1); }
       if ( oldval != val ) { go_BYE(-1); }
       //C Delete should indicate that key did exist and its value 
       //C was what was inserted in previous loop
       if ( hmap->nitems > 0.9 * hmap->size ) { go_BYE(-1); }
-      if ( ( hmap->nitems > 1024 ) && 
+      if ( ( hmap->nitems > HASH_INIT_SIZE ) && 
             ( hmap->nitems < 0.1 * hmap->size ) ) { go_BYE(-1); }
       if ( hmap->size != curr_size ) { 
         curr_size = hmap->size;

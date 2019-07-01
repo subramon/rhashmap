@@ -36,12 +36,11 @@ CFLAGS+=	-DNDEBUG
 endif
 
 LIB=		lib$(PROJ)
-INCS=		rhashmap.h q_rhashmap.h
+INCS=		rhashmap.h 
 
 OBJS=		rhashmap.o
 OBJS+=		murmurhash.o
 OBJS+=		siphash.o
-OBJS+=		q_rhashmap.o
 
 $(LIB).la:	LDFLAGS+=	-rpath $(LIBDIR) -version-info 1:0:0
 install/%.la:	ILIBDIR=	$(DESTDIR)/$(LIBDIR)

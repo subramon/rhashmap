@@ -1,9 +1,10 @@
 /*
  * Use is subject to license terms, as specified in the LICENSE file.
  */
-#include "q_rhashmap.h"
-#include "invariants.h"
-#include <omp.h>
+#include "_q_rhashmap.h"
+#include "_invariants.h"
+#define VALTYPE  int64_t
+#define KEYTYPE uint64_t
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -27,7 +28,7 @@ test_grow_hmap_with_putn(
   VALTYPE *vals = NULL;
   uint32_t *hashes = NULL;
   int nkeys         = 1048576;
-  q_rhashmap_t *hmap = NULL;
+  q_rhashmap_I8_I8_t *hmap = NULL;
   uint64_t t_stop, t_start = RDTSC();
   int update_type = Q_RHM_SET;
   uint8_t *is_founds = NULL;
@@ -59,7 +60,7 @@ test_grow_hmap_with_putn(
     vals[i] = i + 1;
   }
   //C \item Create array hashes for all the keys.
-  status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
+  status = q_rhashmap_mk_hash_I8(keys, nkeys, hmap->hashkey, hashes);
   cBYE(status);
   //C \item Using array hashes, create arrray locs, 
   //C the first probe location for each key.
@@ -68,14 +69,14 @@ test_grow_hmap_with_putn(
   status = q_rhashmap_mk_tid(hashes, nkeys, hmap->size, tids);
   cBYE(status);
   //C \item Put these keys/vals into the hmap using putn()
-  status = q_rhashmap_putn(hmap, update_type, keys, hashes, locs,
+  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
       tids, nT, vals, nkeys, is_founds);
   status = invariants(hmap); cBYE(status);
   //C \item Get values for all keys  using {\tt get()}
   for ( int i = 0; i < nkeys; i++ ) { 
     VALTYPE val;
     bool is_found;
-    status = q_rhashmap_get(hmap, i+1, &val, &is_found); cBYE(status);
+    status = q_rhashmap_get_I8_I8(hmap, i+1, &val, &is_found); cBYE(status);
     if ( val != i+1 ) { go_BYE(-1); }
     if ( !is_found ) { go_BYE(-1); }
   }
@@ -84,14 +85,14 @@ test_grow_hmap_with_putn(
   //C the first probe location for each key. Note that we repeat this
   //C because even though keys and hashes have not changed, the size
   //C of the hash table has changed because of putn above
-  status = q_rhashmap_mk_hash(keys, nkeys, hmap->hashkey, hashes);
+  status = q_rhashmap_mk_hash_I8(keys, nkeys, hmap->hashkey, hashes);
   cBYE(status);
   status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
   cBYE(status);
   status = q_rhashmap_mk_tid(hashes, nkeys, hmap->size, tids);
   cBYE(status);
   //C \item Get values for all keys using {\tt getn()}
-  status = q_rhashmap_getn(hmap, keys, hashes, locs, vals, nkeys);
+  status = q_rhashmap_getn_I8_I8(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
   status = invariants(hmap); cBYE(status);
   //C Confirm that value for each key is 1

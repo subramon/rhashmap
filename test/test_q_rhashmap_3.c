@@ -2,8 +2,10 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "q_rhashmap.h"
-#include "invariants.h"
+#include "_q_rhashmap.h"
+#include "_invariants.h"
+#define VALTYPE  int64_t
+#define KEYTYPE uint64_t
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -25,7 +27,7 @@ test_incr(
   //C \begin{itemize}
   int status = 0;
   int np = 0; // number of probes
-  q_rhashmap_t *hmap = NULL;
+  q_rhashmap_I8_I8_t *hmap = NULL;
   KEYTYPE key = 123;
   VALTYPE val = 0;
   int64_t sumval = 0;
@@ -41,7 +43,7 @@ test_incr(
   //C \item At the end, the value for that key should be \(N \times (N+1)/2\)
   for ( int i = 0; i < 10000; i++ ) { 
     VALTYPE oldval;
-    status = q_rhashmap_put(hmap, key, ++val, Q_RHM_ADD, &oldval, &np);
+    status = q_rhashmap_put_I8_I8(hmap, key, ++val, Q_RHM_ADD, &oldval, &np);
     cBYE(status);
     if ( oldval != sumval ) { go_BYE(-1); }
     sumval += val;

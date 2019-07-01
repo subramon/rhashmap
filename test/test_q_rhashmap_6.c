@@ -2,8 +2,10 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "q_rhashmap.h"
-#include "invariants.h"
+#include "_q_rhashmap.h"
+#include "_invariants.h"
+#define VALTYPE  int64_t
+#define KEYTYPE uint64_t
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -25,7 +27,7 @@ test_random(
   //C Simplest test.
   int status = 0;
   int np = 0; // num_probes
-  q_rhashmap_t *hmap = NULL;
+  q_rhashmap_I8_I8_t *hmap = NULL;
   uint64_t t_stop, t_start = RDTSC();
   bool is_found;
   int niters = 64 * 1048576;
@@ -61,7 +63,7 @@ test_random(
         //C \begin{itemize}
         //C \item Create a key that does not exist.
         for ( ; ; ) { 
-          status = q_rhashmap_get(hmap, key, &val, &is_found); cBYE(status);
+          status = q_rhashmap_get_I8_I8(hmap, key, &val, &is_found); cBYE(status);
           if ( !is_found ) { break; }
           key++;
           num_probes++;
@@ -70,13 +72,13 @@ test_random(
         val = lrand48()  & 0x7FFFFFFF;
         old_nitems = hmap->nitems;
         //C \item Put this key in 
-        status = q_rhashmap_put(hmap, key, ++val, Q_RHM_SET, &old_val, &np);
+        status = q_rhashmap_put_I8_I8(hmap, key, ++val, Q_RHM_SET, &old_val, &np);
         cBYE(status);
         //C \item Verify that \verb+old_val = 0+
         if ( hmap->nitems != old_nitems + 1 ) { go_BYE(-1); }
         //C \item Verify that number of items has increased 
         //C \item Get this key and verify that it exists with proper value
-        status = q_rhashmap_get(hmap, key, &new_val, &is_found); 
+        status = q_rhashmap_get_I8_I8(hmap, key, &new_val, &is_found); 
         cBYE(status);
         if ( val != new_val ) { go_BYE(-1); }
         if ( !is_found ) { go_BYE(-1); }
@@ -106,7 +108,7 @@ test_random(
             printf("hello world\n");
             go_BYE(-1); 
           }
-          status = q_rhashmap_get(hmap, key, &val, &is_found); cBYE(status);
+          status = q_rhashmap_get_I8_I8(hmap, key, &val, &is_found); cBYE(status);
           if ( !is_found ) { 
             printf("hello world\n");
             go_BYE(-1); 
@@ -114,13 +116,13 @@ test_random(
           val = lrand48()  & 0x7FFFFFFF;
           old_nitems = hmap->nitems;
           //C \item Put this key in 
-          status = q_rhashmap_put(hmap, key, ++val, Q_RHM_SET, &old_val, &np);
+          status = q_rhashmap_put_I8_I8(hmap, key, ++val, Q_RHM_SET, &old_val, &np);
           cBYE(status);
           if ( hmap->nitems != old_nitems ) { go_BYE(-1); }
           if ( old_val != chk_old_val ) { go_BYE(-1); }
           //C \item Verify that number of items has NOT increased 
           //C \item Get this key and verify that it exists with proper value
-          status = q_rhashmap_get(hmap, key, &new_val, &is_found); 
+          status = q_rhashmap_get_I8_I8(hmap, key, &new_val, &is_found); 
           cBYE(status);
           if ( val != new_val ) { go_BYE(-1); }
           if ( !is_found ) { go_BYE(-1); }
@@ -135,13 +137,13 @@ test_random(
         //C \begin{itemize}
         //C \item Find a key that does not exist.
         for ( ; ; ) { 
-          status = q_rhashmap_get(hmap, key, &val, &is_found); cBYE(status);
+          status = q_rhashmap_get_I8_I8(hmap, key, &val, &is_found); cBYE(status);
           if ( !is_found ) { break; }
           key = ( lrand48() % maxkey ) + 1;
         }
         old_nitems = hmap->nitems;
         //C \item Delete the key
-        status = q_rhashmap_del(hmap, key, &val, &is_found); cBYE(status);
+        status = q_rhashmap_del_I8_I8(hmap, key, &val, &is_found); cBYE(status);
         //C \item Verify that number of items has NOT changed
         if ( old_nitems != hmap->nitems ) { go_BYE(-1); }
         //C \end{itemize}
@@ -168,7 +170,7 @@ test_random(
             printf("hello world\n");
             go_BYE(-1); 
           }
-          status = q_rhashmap_get(hmap, key, &val, &is_found); cBYE(status);
+          status = q_rhashmap_get_I8_I8(hmap, key, &val, &is_found); cBYE(status);
           if ( !is_found ) { 
             printf("hello world\n");
             go_BYE(-1); 
@@ -176,11 +178,11 @@ test_random(
           val = lrand48()  & 0x7FFFFFFF;
           old_nitems = hmap->nitems;
           //C \item Delete this key
-          status = q_rhashmap_del(hmap, key, &val, &is_found); cBYE(status);
+          status = q_rhashmap_del_I8_I8(hmap, key, &val, &is_found); cBYE(status);
           //C \item Verify that number of items has decreased by 1
           if ( hmap->nitems != old_nitems -1  ) { go_BYE(-1); }
           //C \item Get this key and verify that it does not exist
-          status = q_rhashmap_get(hmap, key, &new_val, &is_found); 
+          status = q_rhashmap_get_I8_I8(hmap, key, &new_val, &is_found); 
           cBYE(status);
           if ( is_found ) { go_BYE(-1); }
         }

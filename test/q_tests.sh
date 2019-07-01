@@ -13,7 +13,30 @@ fi
 CFLAGS=" -std=gnu99 -Wall -Wextra -Werror -fopenmp -g -D_GNU_SOURCE -D_DEFAULT_SOURCE -Wno-unknown-warning-option  -Wstrict-prototypes -Wmissing-prototypes -Wpointer-arith -Wmissing-declarations -Wredundant-decls -Wnested-externs -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wold-style-definition -Wsuggest-attribute=noreturn -Wduplicated-cond -Wmisleading-indentation -Wnull-dereference -Wduplicated-branches -Wrestrict "
 VG=" valgrind --leak-check=full --show-leak-kinds=all  "
 
-FILES=" ../src/q_rhashmap.c ../src/murmurhash.c invariants.c  "
+cat invariants.tmpl.c | \
+  sed s'/__KV__/I8_I8/g ' | \
+  sed s'/__KEYTYPE__/uint64_t/g ' | \
+  sed s'/__VALTYPE__/int64_t/g ' > _invariants.c
+cat invariants.tmpl.h | \
+  sed s'/__KV__/I8_I8/g ' | \
+  sed s'/__KEYTYPE__/uint64_t/g ' | \
+  sed s'/__VALTYPE__/int64_t/g ' > _invariants.h
+cat ../src/q_rhashmap.tmpl.h | \
+  sed s'/__KV__/I8_I8/g ' | \
+  sed s'/__KEYTYPE__/uint64_t/g ' | \
+  sed s'/__KTYPE__/I8/g ' | \
+  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap.h
+cat ../src/q_rhashmap_struct.tmpl.h | \
+  sed s'/__KV__/I8_I8/g ' | \
+  sed s'/__KEYTYPE__/uint64_t/g ' | \
+  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_struct.h
+cat ../src/q_rhashmap.tmpl.c | \
+  sed s'/__KV__/I8_I8/g ' | \
+  sed s'/__KEYTYPE__/uint64_t/g ' | \
+  sed s'/__KTYPE__/I8/g ' | \
+  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap.c
+FILES=" _q_rhashmap.c ../src/murmurhash.c _invariants.c  "
+
 VG="" # Uncomment this line if you do not want Valgrind to run
 
 if [ $TESTNUM = 0 ]; then 
