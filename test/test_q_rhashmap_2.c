@@ -2,8 +2,8 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "_q_rhashmap.h"
-#include "_invariants.h"
+#include "_q_rhashmap_I8_I8.h"
+#include "_invariants_I8_I8.h"
 #define VALTYPE  int64_t
 #define KEYTYPE uint64_t
 //---------------------------------------
@@ -75,7 +75,7 @@ test_add_a_lot(
         curr_size = hmap->size;
       }
     }
-    status = invariants(hmap); cBYE(status);
+    status = invariants_I8_I8(hmap); cBYE(status);
     //C \end{itemize}
     //C \item Verify that number of items in hmap is N
     if ( hmap->nitems != N ) { go_BYE(-1); }
@@ -100,14 +100,14 @@ test_add_a_lot(
         curr_size = hmap->size;
       }
     }
-    status = invariants(hmap); cBYE(status);
+    status = invariants_I8_I8(hmap); cBYE(status);
     //C \end{itemize}
     //C \item Verify that number of items in hmap is 0.
     if ( hmap->nitems != 0 ) { go_BYE(-1); }
     //C \end{itemize}
   }
   //C \item Destroy the hmap
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   q_rhashmap_destroy(hmap);
   //C \end{itemize}
   t_stop = RDTSC();

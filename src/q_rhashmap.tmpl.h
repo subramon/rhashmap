@@ -30,7 +30,7 @@
 #define	LOW_WATER_MARK 0.4
 #define	HIGH_WATER_MARK 0.85
 
-#include "_q_rhashmap_struct.h"
+#include "_q_rhashmap_struct___KV__.h"
 
 extern q_rhashmap___KV___t *	
 q_rhashmap_create(

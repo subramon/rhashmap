@@ -2,8 +2,8 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "_q_rhashmap.h"
-#include "_invariants.h"
+#include "_q_rhashmap_I8_I8.h"
+#include "_invariants_I8_I8.h"
 #define VALTYPE  int64_t
 #define KEYTYPE uint64_t
 //---------------------------------------
@@ -42,7 +42,7 @@ test_random(
   //C \begin{itemize}
   //C \item Create a hashmap with default size 0. 
   hmap = q_rhashmap_create(0);
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   //C Should succeed.
   if ( hmap == NULL) { go_BYE(-1); }
 
@@ -194,7 +194,7 @@ test_random(
     } 
     //C \end{itemize}
   }
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   //C \item Destroy the hashmap
   q_rhashmap_destroy(hmap);
   t_stop = RDTSC();

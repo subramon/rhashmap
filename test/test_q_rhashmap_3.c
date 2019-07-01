@@ -2,8 +2,8 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "_q_rhashmap.h"
-#include "_invariants.h"
+#include "_q_rhashmap_I8_I8.h"
+#include "_invariants_I8_I8.h"
 #define VALTYPE  int64_t
 #define KEYTYPE uint64_t
 //---------------------------------------
@@ -49,7 +49,7 @@ test_incr(
     sumval += val;
     if ( hmap->nitems != 1 ) { go_BYE(-1); }
   }
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   q_rhashmap_destroy(hmap);
   t_stop = RDTSC();
   fprintf(stdout, "Passsed  %s in cycles = %" PRIu64 "\n", __func__, (t_stop-t_start));

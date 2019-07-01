@@ -16,26 +16,26 @@ VG=" valgrind --leak-check=full --show-leak-kinds=all  "
 cat invariants.tmpl.c | \
   sed s'/__KV__/I8_I8/g ' | \
   sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _invariants.c
+  sed s'/__VALTYPE__/int64_t/g ' > _invariants_I8_I8.c
 cat invariants.tmpl.h | \
   sed s'/__KV__/I8_I8/g ' | \
   sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _invariants.h
+  sed s'/__VALTYPE__/int64_t/g ' > _invariants_I8_I8.h
 cat ../src/q_rhashmap.tmpl.h | \
   sed s'/__KV__/I8_I8/g ' | \
   sed s'/__KEYTYPE__/uint64_t/g ' | \
   sed s'/__KTYPE__/I8/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap.h
+  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_I8_I8.h
 cat ../src/q_rhashmap_struct.tmpl.h | \
   sed s'/__KV__/I8_I8/g ' | \
   sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_struct.h
+  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_struct_I8_I8.h
 cat ../src/q_rhashmap.tmpl.c | \
   sed s'/__KV__/I8_I8/g ' | \
   sed s'/__KEYTYPE__/uint64_t/g ' | \
   sed s'/__KTYPE__/I8/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap.c
-FILES=" _q_rhashmap.c ../src/murmurhash.c _invariants.c  "
+  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_I8_I8.c
+FILES=" _q_rhashmap_I8_I8.c ../src/murmurhash.c _invariants_I8_I8.c  "
 
 VG="" # Uncomment this line if you do not want Valgrind to run
 
@@ -47,7 +47,7 @@ fi
 nfiles=0
 while read line; do
   echo "Testing $line"
-  gcc $CFLAGS -I../src/ $FILES $line -o a.out
+  gcc $CFLAGS -I. -I../src/ $FILES $line -o a.out
   $VG ./a.out 1> _out 2>_err
   cat _out
   if [ "$VG" != "" ]; then 

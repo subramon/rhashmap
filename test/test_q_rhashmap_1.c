@@ -2,8 +2,8 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "_q_rhashmap.h"
-#include "_invariants.h"
+#include "_q_rhashmap_I8_I8.h"
+#include "_invariants_I8_I8.h"
 #define VALTYPE  int64_t
 #define KEYTYPE uint64_t
 //---------------------------------------
@@ -37,7 +37,7 @@ test_basic(
   //C \begin{itemize}
   //C \item Create a hashmap with default size 0. 
   hmap = q_rhashmap_create(0);
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   //C Should succeed.
   if ( hmap == NULL) { go_BYE(-1); }
 
@@ -54,7 +54,7 @@ test_basic(
     VALTYPE chk_oldval = val;
     status = q_rhashmap_put_I8_I8(hmap, key, ++val, Q_RHM_SET, &oldval, &np);
     cBYE(status);
-    status = invariants(hmap); cBYE(status);
+    status = invariants_I8_I8(hmap); cBYE(status);
     if ( oldval != chk_oldval ) { go_BYE(-1); }
   }
   //C Each time, old value of key should be previous value.
@@ -68,7 +68,7 @@ test_basic(
   status = q_rhashmap_del_I8_I8(hmap, key, &oldval, &key_exists); cBYE(status);
   //C Delete should succeed and indicate key existed.
   if ( ! key_exists ) { go_BYE(-1); }
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
 
   //C \item Delete the key again.
   status = q_rhashmap_del_I8_I8(hmap, key, &oldval, &key_exists); cBYE(status);
@@ -81,7 +81,7 @@ test_basic(
   if ( is_found ) { go_BYE(-1); }
   if ( val != 0 ) { go_BYE(-1); }
 
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   //C \item Destroy the hashmap
   q_rhashmap_destroy(hmap);
   t_stop = RDTSC();

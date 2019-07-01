@@ -1,8 +1,8 @@
 /*
  * Use is subject to license terms, as specified in the LICENSE file.
  */
-#include "_q_rhashmap.h"
-#include "_invariants.h"
+#include "_q_rhashmap_I8_I8.h"
+#include "_invariants_I8_I8.h"
 #define VALTYPE  int64_t
 #define KEYTYPE uint64_t
 //---------------------------------------
@@ -71,7 +71,7 @@ test_grow_hmap_with_putn(
   //C \item Put these keys/vals into the hmap using putn()
   status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
       tids, nT, vals, nkeys, is_founds);
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   //C \item Get values for all keys  using {\tt get()}
   for ( int i = 0; i < nkeys; i++ ) { 
     VALTYPE val;
@@ -80,7 +80,7 @@ test_grow_hmap_with_putn(
     if ( val != i+1 ) { go_BYE(-1); }
     if ( !is_found ) { go_BYE(-1); }
   }
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   //C \item Using array hashes, create arrray locs, 
   //C the first probe location for each key. Note that we repeat this
   //C because even though keys and hashes have not changed, the size
@@ -94,7 +94,7 @@ test_grow_hmap_with_putn(
   //C \item Get values for all keys using {\tt getn()}
   status = q_rhashmap_getn_I8_I8(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   //C Confirm that value for each key is 1
   for ( int i = 0; i < nkeys; i++ ) { 
     if ( vals[i] != i+1 ) { go_BYE(-1); }

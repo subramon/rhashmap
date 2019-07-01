@@ -30,7 +30,7 @@
  *	https://cs.uwaterloo.ca/research/tr/1986/CS-86-14.pdf
  */
 
-#include "_q_rhashmap.h"
+#include "_q_rhashmap___KV__.h"
 
 static int __attribute__((__unused__))
 validate_psl_p(

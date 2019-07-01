@@ -1,8 +1,8 @@
 /*
  * Use is subject to license terms, as specified in the LICENSE file.
  */
-#include "_q_rhashmap.h"
-#include "_invariants.h"
+#include "_q_rhashmap_I8_I8.h"
+#include "_invariants_I8_I8.h"
 #define VALTYPE  int64_t
 #define KEYTYPE uint64_t
 //---------------------------------------
@@ -79,7 +79,7 @@ test_rand_multi_set(
     status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
         tids, nT, vals, num_keys, is_founds);
     cBYE(status);
-    status = invariants(hmap); cBYE(status);
+    status = invariants_I8_I8(hmap); cBYE(status);
     //C \end{itemize}
     //C Confirm that all keys are found using get
     for ( int i = 0; i < num_keys; i++ ) { 
@@ -92,7 +92,7 @@ test_rand_multi_set(
     status = q_rhashmap_mk_loc(hashes, num_keys, hmap->size, locs);
     status = q_rhashmap_getn_I8_I8(hmap, keys, hashes, locs, vals, num_keys);
     cBYE(status);
-    status = invariants(hmap); cBYE(status);
+    status = invariants_I8_I8(hmap); cBYE(status);
     //C Confirm that all keys are found
     for ( int i = 0; i < num_keys; i++ ) { 
       if ( vals[i] == 0 ) { go_BYE(-1); }
@@ -104,7 +104,7 @@ test_rand_multi_set(
   }
   //C \item  destroy hmap.
   q_rhashmap_destroy(hmap);
-  status = invariants(hmap); cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
   //C \end{itemize}
   //------------------------------------------------
   t_stop = RDTSC();

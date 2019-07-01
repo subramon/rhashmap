@@ -2,8 +2,8 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "_q_rhashmap.h"
-#include "_invariants.h"
+#include "_q_rhashmap___KV__.h"
+#include "_invariants___KV__.h"
 static int
 compar_fn(
       const void *p1, 
@@ -22,7 +22,7 @@ compar_fn(
 
 //---------------------------------------
 int
-invariants(
+invariants___KV__(
     q_rhashmap___KV___t *hmap
     )
 {
