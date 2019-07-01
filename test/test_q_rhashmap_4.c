@@ -59,7 +59,7 @@ test_multi_set(
 
   //C \begin{itemize}
   //C \item Create hmap.
-  hmap = q_rhashmap_create(0); if ( hmap == NULL ) { go_BYE(-1); }
+  hmap = q_rhashmap_create_I8_I8(0); if ( hmap == NULL ) { go_BYE(-1); }
 
   //C \item Create N random keys into it, all of whom have value 1.
   //C The keys need not be unique
@@ -107,9 +107,9 @@ test_multi_set(
     if ( vals[i] != 2 ) { go_BYE(-1); }
   }
   //C \item  destroy hmap.
-  q_rhashmap_destroy(hmap);
+  q_rhashmap_destroy_I8_I8(hmap);
   //C \item  re-create hmap.
-  hmap = q_rhashmap_create(0); if ( hmap == NULL ) { go_BYE(-1); }
+  hmap = q_rhashmap_create_I8_I8(0); if ( hmap == NULL ) { go_BYE(-1); }
   //C \item Set keys as \(1, 2, 3, \ldots N\) .
   for ( int i = 0; i < nkeys; i++ ) { keys[i] = i+1; }
   //C \item Set all values to 1.

@@ -58,11 +58,11 @@ q_rhashmap_putn___KV__(
     uint8_t *is_founds // OUTPUT [nkeys bits] TODO: Change from byte to bit 
     );
 extern q_rhashmap___KV___t *
-q_rhashmap_create(
+q_rhashmap_create___KV__(
       size_t size
         );
 extern void
-q_rhashmap_destroy(
+q_rhashmap_destroy___KV__(
     q_rhashmap___KV___t *ptr_hmap
     );
 #endif

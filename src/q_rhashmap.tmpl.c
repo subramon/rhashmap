@@ -466,7 +466,7 @@ BYE:
  * => If size is zero, then a default minimum is used.
  */
 q_rhashmap___KV___t *
-q_rhashmap_create(
+q_rhashmap_create___KV__(
       size_t size
         )
 {
@@ -491,7 +491,7 @@ q_rhashmap_create(
  * => It is the responsibility of the caller to remove elements if needed.
  */
 void
-q_rhashmap_destroy(
+q_rhashmap_destroy___KV__(
     q_rhashmap___KV___t *ptr_hmap
     )
 {

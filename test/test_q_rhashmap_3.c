@@ -33,7 +33,7 @@ test_incr(
   int64_t sumval = 0;
   uint64_t t_stop, t_start = RDTSC();
 
-  hmap = q_rhashmap_create(0);
+  hmap = q_rhashmap_create_I8_I8(0);
   if ( hmap == NULL ) { go_BYE(-1); }
 
   //C \item Create a hashmap
@@ -50,7 +50,7 @@ test_incr(
     if ( hmap->nitems != 1 ) { go_BYE(-1); }
   }
   status = invariants_I8_I8(hmap); cBYE(status);
-  q_rhashmap_destroy(hmap);
+  q_rhashmap_destroy_I8_I8(hmap);
   t_stop = RDTSC();
   fprintf(stdout, "Passsed  %s in cycles = %" PRIu64 "\n", __func__, (t_stop-t_start));
   //C \end{itemize}

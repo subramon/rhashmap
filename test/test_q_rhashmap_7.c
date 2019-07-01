@@ -57,7 +57,7 @@ test_rand_multi_set(
 
   //C \begin{itemize}
   //C \item Create hmap.
-  hmap = q_rhashmap_create(0); if ( hmap == NULL ) { go_BYE(-1); }
+  hmap = q_rhashmap_create_I8_I8(0); if ( hmap == NULL ) { go_BYE(-1); }
 
   //C \item Do the following num\_iters times
   //C \begin{itemize}
@@ -106,7 +106,7 @@ test_rand_multi_set(
         (int)hmap->nitems, (int)hmap->size);
   }
   //C \item  destroy hmap.
-  q_rhashmap_destroy(hmap);
+  q_rhashmap_destroy_I8_I8(hmap);
   status = invariants_I8_I8(hmap); cBYE(status);
   //C \end{itemize}
   //------------------------------------------------

@@ -35,7 +35,7 @@ test_add_a_lot(
   //C \section{A lot of puts}
   //C \begin{itemize}
   //C \item Create a hashmap
-  hmap = q_rhashmap_create(0);
+  hmap = q_rhashmap_create_I8_I8(0);
   if (hmap == NULL) { go_BYE(-1); }
 
   int niters = 10;
@@ -108,7 +108,7 @@ test_add_a_lot(
   }
   //C \item Destroy the hmap
   status = invariants_I8_I8(hmap); cBYE(status);
-  q_rhashmap_destroy(hmap);
+  q_rhashmap_destroy_I8_I8(hmap);
   //C \end{itemize}
   t_stop = RDTSC();
   fprintf(stdout, "Passsed  %s in cycles = %" PRIu64 "\n", __func__, (t_stop-t_start));

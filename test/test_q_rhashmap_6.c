@@ -41,7 +41,7 @@ test_random(
   srandom(RDTSC());
   //C \begin{itemize}
   //C \item Create a hashmap with default size 0. 
-  hmap = q_rhashmap_create(0);
+  hmap = q_rhashmap_create_I8_I8(0);
   status = invariants_I8_I8(hmap); cBYE(status);
   //C Should succeed.
   if ( hmap == NULL) { go_BYE(-1); }
@@ -196,7 +196,7 @@ test_random(
   }
   status = invariants_I8_I8(hmap); cBYE(status);
   //C \item Destroy the hashmap
-  q_rhashmap_destroy(hmap);
+  q_rhashmap_destroy_I8_I8(hmap);
   t_stop = RDTSC();
   //C \end{itemize}
   fprintf(stdout, "Passsed  %s in cycles = %" PRIu64 "\n", __func__, (t_stop-t_start));
