@@ -1,5 +1,5 @@
-#ifndef _Q_RHASHMAP_STRUCT_H_
-#define _Q_RHASHMAP_STRUCT_H_
+#ifndef _Q_RHASHMAP_STRUCT___KV___H_
+#define _Q_RHASHMAP_STRUCT___KV___H_
 typedef struct {
 	__KEYTYPE__  key; 
 	__VALTYPE__ val;

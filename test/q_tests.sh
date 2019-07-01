@@ -24,8 +24,13 @@ cat invariants.tmpl.h | \
 cat ../src/q_rhashmap.tmpl.h | \
   sed s'/__KV__/I8_I8/g ' | \
   sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__KTYPE__/I8/g ' | \
   sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_I8_I8.h
+cat ../src/q_rhashmap_mk_hash.tmpl.h | \
+  sed s'/__K__/I8/g ' | \
+  sed s'/__KEYTYPE__/uint64_t/g ' > _q_rhashmap_mk_hash_I8.h
+cat ../src/q_rhashmap_mk_hash.tmpl.c | \
+  sed s'/__K__/I8/g ' | \
+  sed s'/__KEYTYPE__/uint64_t/g ' > _q_rhashmap_mk_hash_I8.c
 cat ../src/q_rhashmap_struct.tmpl.h | \
   sed s'/__KV__/I8_I8/g ' | \
   sed s'/__KEYTYPE__/uint64_t/g ' | \
@@ -33,9 +38,8 @@ cat ../src/q_rhashmap_struct.tmpl.h | \
 cat ../src/q_rhashmap.tmpl.c | \
   sed s'/__KV__/I8_I8/g ' | \
   sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__KTYPE__/I8/g ' | \
   sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_I8_I8.c
-FILES=" _q_rhashmap_I8_I8.c ../src/murmurhash.c _invariants_I8_I8.c  "
+FILES=" _q_rhashmap_mk_hash_I8.c _q_rhashmap_I8_I8.c ../src/q_rhashmap_mk_tid.c ../src/q_rhashmap_mk_loc.c ../src/murmurhash.c _invariants_I8_I8.c  "
 
 VG="" # Uncomment this line if you do not want Valgrind to run
 

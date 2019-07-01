@@ -2,6 +2,9 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 #include "_q_rhashmap_I8_I8.h"
+#include "_q_rhashmap_mk_hash_I8.h"
+#include "q_rhashmap_mk_loc.h"
+#include "q_rhashmap_mk_tid.h"
 #include "_invariants_I8_I8.h"
 #define VALTYPE  int64_t
 #define KEYTYPE uint64_t
