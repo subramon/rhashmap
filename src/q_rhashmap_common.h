@@ -17,9 +17,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <omp.h>
-#include "macros.h"
+#include "q_macros.h"
 #include "fastdiv.h"
-#include "macros.h"
 
 #define	Q_RHM_SET  1
 #define	Q_RHM_ADD 2

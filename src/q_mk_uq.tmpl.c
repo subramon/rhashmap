@@ -15,27 +15,12 @@
  *
  * Use is subject to license terms, as specified in the LICENSE file.
  */
-
-/*
- * A general purpose hash table, using the Robin Hood hashing algorithm.
- *
- * Conceptually, it is a hash table using linear probing on lookup with
- * a particular displacement strategy on inserts.  The central idea of
- * the Robin Hood hashing algorithm is to reduce the variance of the
- * probe sequence length (PSL).
- *
- * Reference:
- *
- *	Pedro Celis, 1986, Robin Hood Hashing, University of Waterloo
- *	https://cs.uwaterloo.ca/research/tr/1986/CS-86-14.pdf
- */
-
-#include "_q_rhashmap___KV__.h"
+#include "_q_mk_uq___KEY__.h"
 
 static int __attribute__((__unused__))
 validate_psl_p(
-    q_rhashmap___KV___t *hmap, 
-    const q_rh_bucket___KV___t *bucket, 
+    q_mk_uq___KEY___t *hmap, 
+    const q_rh_bucket___KEY___t *bucket, 
     uint32_t i
     )
 {
@@ -98,18 +83,12 @@ calc_new_size(
 }
 
 /*
- * q_rhashmap_get: lookup an value given the key.
- *
- * => If key is present, *ptr_val is set to its associated value
- * and is_found is set to true
- * => If key is absent, *ptr_val is set to 0
- * and is_found is set to false
+ * q_mk_uq_get: check if key esists
  */
 int 
-q_rhashmap_get___KV__(
-    q_rhashmap___KV___t *hmap, 
+q_mk_uq_get___KEY__(
+    q_mk_uq___KEY___t *hmap, 
     __KEYTYPE__  key,
-    __VALTYPE__ *ptr_val,
     bool *ptr_is_found
     )
 {
@@ -117,9 +96,8 @@ q_rhashmap_get___KV__(
   const uint32_t hash = murmurhash3(&key, sizeof(__KEYTYPE__), hmap->hashkey);
   uint32_t n = 0; 
   uint32_t i = fast_rem32(hash, hmap->size, hmap->divinfo);
-  q_rh_bucket___KV___t *bucket = NULL;
+  q_rh_bucket___KEY___t *bucket = NULL;
   *ptr_is_found = false;
-  *ptr_val      = 0;
 
   /*
    * Lookup is a linear probe.
@@ -131,7 +109,6 @@ q_rhashmap_get___KV__(
     ASSERT(validate_psl_p(hmap, bucket, i));
 
     if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
-      *ptr_val = bucket->val;
       *ptr_is_found = true;
       break;
     }
@@ -156,32 +133,30 @@ q_rhashmap_get___KV__(
 
 //------------------------------------------------------
 int 
-q_rhashmap_getn___KV__(
-    q_rhashmap___KV___t *hmap, // INPUT
+q_mk_uq_getn___KEY__(
+    q_mk_uq___KEY___t *hmap, // INPUT
     __KEYTYPE__ *keys, // INPUT: [nkeys] 
     uint32_t *hashes, // INPUT [nkeys]
     uint32_t *locs, // INPUT [nkeys] 
-    __VALTYPE__ *vals, // OUTPUT [nkeys] 
+    bool *is_founds, // OUTPUT [nkeys] 
     uint32_t nkeys // INPUT 
-    // TODO P4 we won't do is_found for the first implementation
     )
 {
   int status = 0;
-  int chunk_size = 1024;
 #pragma omp parallel for schedule(static, chunk_size)
   for ( uint32_t j = 0; j < nkeys; j++ ) {
     uint32_t n = 0; 
     uint32_t i = locs[j];
     uint32_t hash = hashes[j];
-    q_rh_bucket___KV___t *bucket = NULL;
-    vals[j]     = 0;
+    q_rh_bucket___KEY___t *bucket = NULL;
+    is_founds[j]     = false;
 
     for ( ; ; ) { 
       bucket = &hmap->buckets[i];
       ASSERT(validate_psl_p(hmap, bucket, i));
 
       if ( ( bucket->hash == hash ) && ( bucket->key == keys[j] ) ) {
-        vals[j] = bucket->val;
+        is_founds[j] = true;
         break; // found 
       }
       if (!bucket->key || n > bucket->psl) {
@@ -194,26 +169,24 @@ q_rhashmap_getn___KV__(
   return status;
 }
 /*
- * rhashmap_insert: internal rhashmap_put(), without the resize.
+ * mk_uq_insert: internal rhashmap_put(), without the resize.
  */
 static int
-q_rhashmap_insert(
-    q_rhashmap___KV___t *hmap, 
+q_mk_uq_insert(
+    q_mk_uq___KEY___t *hmap, 
     __KEYTYPE__ key,
-    __VALTYPE__ val,
-    int update_type,
-    __VALTYPE__ *ptr_oldval,
+    bool *ptr_is_old,
     int *ptr_num_probes
     )
 {
   int status = 0;
   const uint32_t hash = murmurhash3(&key, sizeof(__KEYTYPE__), hmap->hashkey);
-  q_rh_bucket___KV___t *bucket, entry;
+  q_rh_bucket___KEY___t *bucket, entry;
   uint32_t i;
   int num_probes = 0;
   register uint32_t size = hmap->size;
   register uint64_t divinfo = hmap->divinfo;
-  bool key_updated = false;
+  bool *ptr_is_old = false;
 
   // 0 is not a valid value for a key, TODO P3 Document this better
   // Note that we do NOT throw an error
@@ -222,7 +195,6 @@ q_rhashmap_insert(
   // Setup the bucket entry.
   entry.key   = key;
   entry.hash  = hash;
-  entry.val   = val;
   entry.psl   = 0;
   *ptr_oldval = 0;
 
@@ -246,23 +218,12 @@ q_rhashmap_insert(
       // TODO P4 Why are we comparing the hash at all below?
       // If there is a key in the bucket and its you
       if ( (bucket->hash == hash) && (bucket->key == key) ) { 
-        key_updated = true;
-        // do the prescribed update 
-        *ptr_oldval = bucket->val;
-        if ( update_type == Q_RHM_SET ) { 
-          bucket->val = val;
-        }
-        else if ( update_type == Q_RHM_ADD ) { 
-          bucket->val += val;
-        }
-        else {
-          go_BYE(-1);
-        }
+        *ptr_is_old = true;
         break;
       }
       // We found a "rich" bucket.  Capture its location.
       if (entry.psl > bucket->psl) {
-        q_rh_bucket___KV___t tmp;
+        q_rh_bucket___KEY___t tmp;
         /*
          * Place our key-value pair by swapping the "rich"
          * bucket with our entry.  Copy the structures.
@@ -294,16 +255,16 @@ BYE:
 }
 
 static int
-q_rhashmap_resize(
-    q_rhashmap___KV___t *hmap, 
+q_mk_uq_resize(
+    q_mk_uq___KEY___t *hmap, 
     size_t newsize
     )
 {
   int status = 0;
-  q_rh_bucket___KV___t *oldbuckets = hmap->buckets;
+  q_rh_bucket___KEY___t *oldbuckets = hmap->buckets;
   const size_t oldsize = hmap->size;
-  q_rh_bucket___KV___t *newbuckets = NULL;
-  const size_t len = newsize * sizeof(q_rh_bucket___KV___t);
+  q_rh_bucket___KEY___t *newbuckets = NULL;
+  const size_t len = newsize * sizeof(q_rh_bucket___KEY___t);
   int num_probes = 0;
 
   // some obvious logical checks
@@ -326,13 +287,13 @@ q_rhashmap_resize(
   hmap->hashkey ^= random() | (random() << 32);
 
   for ( uint32_t i = 0; i < oldsize; i++) {
-    const q_rh_bucket___KV___t *bucket = &oldbuckets[i];
+    const q_rh_bucket___KEY___t *bucket = &oldbuckets[i];
 
     /* Skip the empty buckets. */
     if ( !bucket->key ) { continue; }
 
     __VALTYPE__ oldval; // not needed except for signature
-    q_rhashmap_insert(hmap, bucket->key, bucket->val, Q_RHM_SET, &oldval,
+    q_mk_uq_insert(hmap, bucket->key, bucket->val, Q_RHM_SET, &oldval,
         &num_probes);
   }
   free_if_non_null(oldbuckets);
@@ -341,14 +302,14 @@ BYE:
 }
 
 /*
- * rhashmap_put: insert a value given the key.
+ * mk_uq_put: insert a value given the key.
  *
  * => If the key is already present, return its associated value.
  * => Otherwise, on successful insert, return the given value.
  */
 int
-q_rhashmap_put___KV__(
-    q_rhashmap___KV___t *hmap, 
+q_mk_uq_put___KEY__(
+    q_mk_uq___KEY___t *hmap, 
     __KEYTYPE__ key, 
     __VALTYPE__ val,
     int update_type,
@@ -362,10 +323,10 @@ q_rhashmap_put___KV__(
   status = calc_new_size(hmap->nitems, hmap->minsize, hmap->size, 
       decreasing, &newsize, &resize);
   if ( resize ) { 
-    status = q_rhashmap_resize(hmap, newsize); cBYE(status);
+    status = q_mk_uq_resize(hmap, newsize); cBYE(status);
   }
 
-  status = q_rhashmap_insert(hmap, key, val, update_type, 
+  status = q_mk_uq_insert(hmap, key, val, update_type, 
       ptr_oldval, ptr_num_probes);
   cBYE(status);
 BYE:
@@ -373,13 +334,13 @@ BYE:
 }
 
 /*
- * rhashmap_del: remove the given key and return its value.
+ * mk_uq_del: remove the given key and return its value.
  *
  * => If key was present, return its associated value; otherwise NULL.
  */
 int
-q_rhashmap_del___KV__(
-    q_rhashmap___KV___t *hmap, 
+q_mk_uq_del___KEY__(
+    q_mk_uq___KEY___t *hmap, 
     __KEYTYPE__ key,
     __VALTYPE__ *ptr_oldval,
     bool *ptr_is_found
@@ -388,7 +349,7 @@ q_rhashmap_del___KV__(
   int status = 0;
   const uint32_t hash = murmurhash3(&key, sizeof(__KEYTYPE__), hmap->hashkey);
   uint32_t n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
-  q_rh_bucket___KV___t *bucket;
+  q_rh_bucket___KEY___t *bucket;
   *ptr_oldval = 0;
   bool decreasing = true, resize; uint32_t newsize;
 
@@ -426,7 +387,7 @@ probe:
    * Use the backwards-shifting method to maintain low variance.
    */
   for ( ; ; ) {
-    q_rh_bucket___KV___t *nbucket = NULL;
+    q_rh_bucket___KEY___t *nbucket = NULL;
 
     bucket->key = 0;
     bucket->val  = 0; 
@@ -453,30 +414,30 @@ probe:
       decreasing, &newsize, &resize);
   cBYE(status);
   if ( resize ) {
-    status = q_rhashmap_resize(hmap, newsize); cBYE(status);
+    status = q_mk_uq_resize(hmap, newsize); cBYE(status);
   }
 BYE:
   return status;
 }
 
 /*
- * rhashmap_create: construct a new hash table.
+ * mk_uq_create: construct a new hash table.
  *
  * => If size is non-zero, then pre-allocate the given number of buckets;
  * => If size is zero, then a default minimum is used.
  */
-q_rhashmap___KV___t *
-q_rhashmap_create___KV__(
+q_mk_uq___KEY___t *
+q_mk_uq_create___KEY__(
       size_t size
         )
 {
-  q_rhashmap___KV___t *hmap = NULL;
+  q_mk_uq___KEY___t *hmap = NULL;
 
-  hmap = calloc(1, sizeof(q_rhashmap___KV___t));
+  hmap = calloc(1, sizeof(q_mk_uq___KEY___t));
   if ( hmap == NULL ) { return NULL; }
 
   hmap->minsize = MAX(size, HASH_INIT_SIZE);
-  if ( q_rhashmap_resize(hmap, hmap->minsize) != 0) {
+  if ( q_mk_uq_resize(hmap, hmap->minsize) != 0) {
     free(hmap);
     return NULL;
   }
@@ -486,13 +447,13 @@ q_rhashmap_create___KV__(
 }
 
 /*
- * rhashmap_destroy: free the memory used by the hash table.
+ * mk_uq_destroy: free the memory used by the hash table.
  *
  * => It is the responsibility of the caller to remove elements if needed.
  */
 void
-q_rhashmap_destroy___KV__(
-    q_rhashmap___KV___t *ptr_hmap
+q_mk_uq_destroy___KEY__(
+    q_mk_uq___KEY___t *ptr_hmap
     )
 {
   free(ptr_hmap->buckets);
@@ -517,8 +478,8 @@ q_rhashmap_destroy___KV__(
 // (B) update value with new value provided (either set or add)
 // Else, set is_found[j] to false
 int 
-q_rhashmap_putn___KV__(
-    q_rhashmap___KV___t *hmap,  // INPUT
+q_mk_uq_putn___KEY__(
+    q_mk_uq___KEY___t *hmap,  // INPUT
     int update_type, // INPUT
     __KEYTYPE__ *keys, // INPUT [nkeys] 
     uint32_t *hashes, // INPUT [nkeys]
@@ -551,7 +512,7 @@ q_rhashmap_putn___KV__(
     register uint32_t mytid = omp_get_thread_num();
     for ( uint32_t j = 0; j < nkeys; j++ ) {
       register uint32_t hash = hashes[j];
-      register q_rh_bucket___KV___t *buckets = hmap->buckets;
+      register q_rh_bucket___KEY___t *buckets = hmap->buckets;
       register __KEYTYPE__ key = keys[j];
       register __VALTYPE__ val = vals[j];
       uint32_t i = locs[j]; // fast_rem32(hash, hmap_size, hmap_divinfo);
@@ -561,7 +522,7 @@ q_rhashmap_putn___KV__(
       uint32_t n = 0; 
 
       for ( ; ; ) { // search until found 
-        q_rh_bucket___KV___t *bucket = buckets + i;
+        q_rh_bucket___KEY___t *bucket = buckets + i;
         ASSERT(validate_psl_p(hmap, bucket, i)); // TODO P4 needed?
 
         if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
@@ -599,7 +560,7 @@ q_rhashmap_putn___KV__(
       if ( is_founds[i] == 0 ) {
         __VALTYPE__ oldval;
         int num_probes; // TODO P2 Should do this properly
-        status = q_rhashmap_put___KV__(hmap, keys[i], vals[i], update_type,
+        status = q_mk_uq_put___KEY__(hmap, keys[i], vals[i], update_type,
             &oldval, &num_probes);
         cBYE(status);
         /* Following has been commented out because it is a wrong check

@@ -9,6 +9,18 @@
 #include "q_rhashmap_common.h"
 #include "q_rhashmap_mk_tid.h"
 
+/* Ideally, we want to distribute the work to the threads so that
+ * 1) they never update the same cell
+ * 2) they (ideally) have large contiguous regions which they own i.e., 
+ * only they write in that region
+
+Dividing based on hashes gives us 1)
+Dividing based on locs   gives us 2)
+However, since 1) is more important than 2), we went with 1)
+Note that locs doesn't give you the location of a key.
+It only gives you a starting point for the hunt for the location of a key
+ */
+
 int 
 q_rhashmap_mk_tid(
     uint32_t *hashes, // input  [nkeys] 
