@@ -1,0 +1,5 @@
+*.log
+*.pdf
+*.tex
+*a.out
+_*
