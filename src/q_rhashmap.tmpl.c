@@ -550,13 +550,13 @@ q_rhashmap_putn___KV__(
     // TODO P3 Can I avoid get_thread_num() in each iteration?
     register uint32_t mytid = omp_get_thread_num();
     for ( uint32_t j = 0; j < nkeys; j++ ) {
+      // Following so that 2 threads don't deal with same key
+      if ( tids[j] != mytid )  { continue; }
       register uint32_t hash = hashes[j];
       register q_rh_bucket___KV___t *buckets = hmap->buckets;
       register __KEYTYPE__ key = keys[j];
       register __VALTYPE__ val = vals[j];
       uint32_t i = locs[j]; // fast_rem32(hash, hmap_size, hmap_divinfo);
-      // Following so that 2 threads don't deal with same key
-      if ( tids[j] != mytid )  { continue; }
       is_founds[j] = 0;
       uint32_t n = 0; 
 
