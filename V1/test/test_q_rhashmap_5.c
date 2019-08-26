@@ -72,7 +72,7 @@ test_grow_hmap_with_putn(
   status = q_rhashmap_mk_tid(hashes, nkeys, hmap->size, tids);
   cBYE(status);
   //C \item Put these keys/vals into the hmap using putn()
-  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, locs,
+  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
       tids, nT, vals, nkeys, is_founds);
   status = invariants_I8_I8(hmap); cBYE(status);
   //C \item Get values for all keys  using {\tt get()}
@@ -95,7 +95,7 @@ test_grow_hmap_with_putn(
   status = q_rhashmap_mk_tid(hashes, nkeys, hmap->size, tids);
   cBYE(status);
   //C \item Get values for all keys using {\tt getn()}
-  status = q_rhashmap_getn_I8_I8(hmap, keys, locs, vals, nkeys);
+  status = q_rhashmap_getn_I8_I8(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
   status = invariants_I8_I8(hmap); cBYE(status);
   //C Confirm that value for each key is 1

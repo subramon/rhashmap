@@ -39,6 +39,7 @@ extern int
 q_rhashmap_getn___KV__(
     q_rhashmap___KV___t *hmap, 
     __KEYTYPE__  *keys, // [nkeys] 
+    uint32_t *hashes, // [nkeys] 
     uint32_t *locs, // [nkeys] 
     __VALTYPE__  *vals, // [nkeys] 
     uint32_t nkeys
@@ -48,6 +49,7 @@ q_rhashmap_putn___KV__(
     q_rhashmap___KV___t *hmap,  // INPUT
     int update_type, // INPUT
     __KEYTYPE__ *keys, // INPUT [nkeys] 
+    uint32_t *hashes, // INPUT [nkeys]
     uint32_t *locs, // INPUT [nkeys]
     uint8_t *tids, // INPUT [nkeys]
     int nT,

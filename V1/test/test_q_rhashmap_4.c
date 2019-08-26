@@ -86,7 +86,7 @@ test_multi_set(
   //C Notice that because of
   //C non-uniqueness, the same key may be written to more than once. 
   //C However, all writes have the same value.
-  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, locs,
+  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
       tids, nT, vals, nkeys, is_founds);
   cBYE(status);
   status = invariants_I8_I8(hmap); cBYE(status);
@@ -99,7 +99,7 @@ test_multi_set(
   //C \item Initialize arrray locs, the first probe location for each key
   status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
   //C \item Get values for all keys 
-  status = q_rhashmap_getn_I8_I8(hmap, keys, locs, vals, nkeys);
+  status = q_rhashmap_getn_I8_I8(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
   status = invariants_I8_I8(hmap); cBYE(status);
   //C Confirm that value for each key is 2
@@ -131,12 +131,12 @@ test_multi_set(
   //C \item Use {\tt putn()} and update type = ADD to add 2 to values of all
   //C keys
   update_type = Q_RHM_ADD;
-  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, locs,
+  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
       tids, nT, vals, nkeys, is_founds);
   status = invariants_I8_I8(hmap); cBYE(status);
   //C \item Use {\tt getn()} to get all keys that were put in and ascertain value = 1+2.
   status = q_rhashmap_mk_loc(hashes, nkeys, hmap->size, locs);
-  status = q_rhashmap_getn_I8_I8(hmap, keys, locs, vals, nkeys);
+  status = q_rhashmap_getn_I8_I8(hmap, keys, hashes, locs, vals, nkeys);
   cBYE(status);
   for ( int i = 0; i < nkeys; i++ ) { 
     if ( vals[i] != 1+2 ) { go_BYE(-1); }

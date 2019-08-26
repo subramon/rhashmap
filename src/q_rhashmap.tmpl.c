@@ -32,6 +32,7 @@
 
 #include "_q_rhashmap___KV__.h"
 
+#ifdef DEBUG
 static int __attribute__((__unused__))
 validate_psl_p(
     q_rhashmap___KV___t *hmap, 
@@ -43,6 +44,7 @@ validate_psl_p(
   uint32_t diff = (base_i > i) ? hmap->size - base_i + i : i - base_i;
   return bucket->key == 0 || diff == bucket->psl;
 }
+#endif
 
 /* Checks whether resize is needed. If so, calculates newsize */
 /* Resize needed when occupancy is too high or too low */
@@ -128,9 +130,13 @@ q_rhashmap_get___KV__(
   register uint64_t size    = hmap->size;
   for ( ; ; ) { 
     bucket = &hmap->buckets[i];
+#ifdef DEBUG
     ASSERT(validate_psl_p(hmap, bucket, i));
-
-    if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
+    if ( ( bucket->hash == hash ) && ( bucket->key == key ) )
+#else
+    if ( bucket->key == key )
+#endif
+    {
       *ptr_val = bucket->val;
       *ptr_is_found = true;
       break;
@@ -172,15 +178,21 @@ q_rhashmap_getn___KV__(
   for ( uint32_t j = 0; j < nkeys; j++ ) {
     uint32_t n = 0; 
     uint32_t i = locs[j];
+#ifdef DEBUG
     uint32_t hash = hashes[j];
+#endif
     q_rh_bucket___KV___t *bucket = NULL;
     vals[j]     = 0;
 
     for ( ; ; ) { 
       bucket = &hmap->buckets[i];
+#ifdef DEBUG
       ASSERT(validate_psl_p(hmap, bucket, i));
-
-      if ( ( bucket->hash == hash ) && ( bucket->key == keys[j] ) ) {
+      if ( ( bucket->hash == hash ) && ( bucket->key == keys[j] ) ) 
+#else
+      if ( bucket->key == keys[j] ) 
+#endif
+      {
         vals[j] = bucket->val;
         break; // found 
       }
@@ -221,7 +233,9 @@ q_rhashmap_insert(
 
   // Setup the bucket entry.
   entry.key   = key;
+#ifdef DEBUG
   entry.hash  = hash;
+#endif
   entry.val   = val;
   entry.psl   = 0;
   *ptr_oldval = 0;
@@ -241,11 +255,13 @@ q_rhashmap_insert(
     bucket = &hmap->buckets[i];
     // If there is a key in the bucket.
     if ( bucket->key ) {
+#ifdef DEBUG
       ASSERT(validate_psl_p(hmap, bucket, i));
-
-      // TODO P4 Why are we comparing the hash at all below?
-      // If there is a key in the bucket and its you
-      if ( (bucket->hash == hash) && (bucket->key == key) ) { 
+      if ( (bucket->hash == hash) && (bucket->key == key) ) 
+#else
+      if ( bucket->key == key ) 
+#endif
+      {
         key_updated = true;
         // do the prescribed update 
         *ptr_oldval = bucket->val;
@@ -273,7 +289,9 @@ q_rhashmap_insert(
       }
       entry.psl++;
       /* Continue to the next bucket. */
+#ifdef DEBUG
       ASSERT(validate_psl_p(hmap, bucket, i));
+#endif
       num_probes++;
       i = fast_rem32(i + 1, size, divinfo);
     }
@@ -287,7 +305,9 @@ q_rhashmap_insert(
     hmap->nitems++;
   }
 
+#ifdef DEBUG
   ASSERT(validate_psl_p(hmap, bucket, i));
+#endif
   *ptr_num_probes = num_probes;
 BYE:
   return status;
@@ -403,9 +423,13 @@ probe:
   if ( n > bucket->psl ) { 
     *ptr_is_found = false; goto BYE;
   }
+#ifdef DEBUG
   ASSERT(validate_psl_p(hmap, bucket, i));
-
-  if ( ( bucket->hash != hash ) || ( bucket->key != key ) ) { 
+  if ( ( bucket->hash != hash ) || ( bucket->key != key ) ) 
+#else
+  if ( bucket->key != key ) 
+#endif
+  {
     /* Continue to the next bucket. */
     i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
     n++;
@@ -417,7 +441,9 @@ probe:
   *ptr_oldval  = bucket->val;
   *ptr_is_found = true;
   bucket->val  = 0; 
+#ifdef DEBUG
   bucket->hash = 0; 
+#endif
   bucket->psl  = 0; 
   hmap->nitems--;
 
@@ -430,12 +456,16 @@ probe:
 
     bucket->key = 0;
     bucket->val  = 0; 
+#ifdef DEBUG
     bucket->hash = 0; 
+#endif
     bucket->psl  = 0; 
 
     i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
     nbucket = &hmap->buckets[i];
+#ifdef DEBUG
     ASSERT(validate_psl_p(hmap, nbucket, i));
+#endif
 
     /*
      * Stop if we reach an empty bucket or hit a key which
@@ -532,8 +562,6 @@ q_rhashmap_putn___KV__(
 {
   int status = 0;
   int *is_new = NULL;
-  int num_new = 0;
-  bool need_sequential_put = false;
   register uint32_t hmap_size    = hmap->size;
   register uint64_t hmap_divinfo = hmap->divinfo;
   // quick sanity check 
@@ -552,7 +580,9 @@ q_rhashmap_putn___KV__(
     for ( uint32_t j = 0; j < nkeys; j++ ) {
       // Following so that 2 threads don't deal with same key
       if ( tids[j] != mytid )  { continue; }
+#ifdef DEBUG
       register uint32_t hash = hashes[j];
+#endif
       register q_rh_bucket___KV___t *buckets = hmap->buckets;
       register __KEYTYPE__ key = keys[j];
       register __VALTYPE__ val = vals[j];
@@ -562,9 +592,13 @@ q_rhashmap_putn___KV__(
 
       for ( ; ; ) { // search until found 
         q_rh_bucket___KV___t *bucket = buckets + i;
-        ASSERT(validate_psl_p(hmap, bucket, i)); // TODO P4 needed?
-
-        if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
+#ifdef DEBUG
+        ASSERT(validate_psl_p(hmap, bucket, i)); 
+        if ( ( bucket->hash == hash ) && ( bucket->key == key ) )
+#else
+        if ( bucket->key == key )
+#endif
+        {
           switch ( update_type ) {
             case Q_RHM_SET : bucket->val  = val; break; 
             case Q_RHM_ADD : bucket->val += val; break;
@@ -587,6 +621,7 @@ q_rhashmap_putn___KV__(
     }
   }
   // Find out if new keys were provided in the above loop
+  bool need_sequential_put = false;
   for ( int i = 0; i < nT; i++ ) { 
     if ( is_new[i] != 0 ) { need_sequential_put = true; }
   }
@@ -594,6 +629,7 @@ q_rhashmap_putn___KV__(
   // TODO P2: Currently, we are scannning the entire list of keys, 
   // looking for the ones to add. Ideally, each thread should keep 
   // a list of keys to be added and we should just scan that list.
+  int num_new = 0;
   if ( need_sequential_put ) { 
     for ( unsigned int i = 0; i < nkeys; i++ ) {
       if ( is_founds[i] == 0 ) {

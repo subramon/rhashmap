@@ -20,26 +20,26 @@ RDTSC(
 }
 //----------------------------------------------------------
 static int
-test_rand_multi_set(
+test_putn_perf(
     void
     )
 {
   int status = 0;
-  //C \section{Test multi-set}
-  //C \label{multi_set}
+  //C \section{Test putn performance}
+  //C \label{putn_perf}
   KEYTYPE *keys = NULL;
   VALTYPE *vals = NULL;
   uint32_t *hashes = NULL;
   q_rhashmap_I8_I8_t *hmap = NULL;
-  uint64_t t_stop, t_start = RDTSC();
-  int update_type = Q_RHM_SET;
+  int update_type = Q_RHM_ADD;
   uint8_t *is_founds = NULL;
   uint32_t *locs = NULL;
   uint8_t *tids = NULL;
   int nT = omp_get_num_threads();
-  int key_ub = 1024; // gets multiplied by 2 in every iteration
-  int num_iters = 20; 
+  int num_iters = 64; 
   int num_keys  = 65536;
+  int n = 1048576;
+  uint64_t t_total = 0, t_start, t_stop;
 
   srandom(123456789);
   locs = calloc(num_keys, sizeof(uint32_t));
@@ -59,13 +59,43 @@ test_rand_multi_set(
   //C \item Create hmap.
   hmap = q_rhashmap_create_I8_I8(0); if ( hmap == NULL ) { go_BYE(-1); }
 
+  //C \item Create keys 1, 2, ... n = 1048576, values are irrelevant.
+  for ( int i = 0; i < num_keys; i++ ) {
+    keys[i] = i+1;
+    vals[i] = 1;
+  }
+  //C \item Put these keys into the hmap using putn()
+  //C \begin{itemize}
+  for ( int i = 0; i < num_keys; i++ ) { vals[i] = 2; }
+  //C \item Create hashes for all the keys
+  status = q_rhashmap_mk_hash_I8(keys, num_keys, hmap->hashkey, hashes);
+  cBYE(status);
+  //C \item Initialize arrray locs, the first probe location for each key
+  status = q_rhashmap_mk_loc(hashes, num_keys, hmap->size, locs);
+  //C \item Initialize arrray tids, for paralelization 
+  status = q_rhashmap_mk_tid(hashes, num_keys, nT, tids);
+  //C \item Use putn() to update keys in one call (instead of a loop)
+  status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
+      tids, nT, vals, num_keys, is_founds);
+  cBYE(status);
+  status = invariants_I8_I8(hmap); cBYE(status);
+  //C \end{itemize}
+  //C%-------------------------------------------------------
   //C \item Do the following num\_iters times
   //C \begin{itemize}
   for ( int iters = 1; iters < num_iters; iters++ ) {
-    //C \item Create random keys in range 1, \ldots key\_ub
-    //C The keys need not be unique. Values are irrelevant.
+    //C \item Select lb, ub randomly from 1 to n, where lb < ub.
+    //C Set the value of n keys randomly from lb to ub (there will be dupes)
+    //C Values once again are irrelevant
+    int lb, ub;
+    for ( ; ; ) {
+      lb = random() % n;
+      ub = random() % n;
+      if ( lb > ub ) { int swap = lb; lb = ub; ub = swap; }
+      if ( ( ub - lb ) >= 10 ) { break; }
+    }
     for ( int i = 0; i < num_keys; i++ ) {
-      keys[i] = ( random() % key_ub  ) + 1;
+      keys[i] = (random() % ( ub - lb )) + 1;
       vals[i] = 1;
     }
     //C \item Put these keys into the hmap using putn()
@@ -79,38 +109,24 @@ test_rand_multi_set(
     //C \item Initialize arrray tids, for paralelization 
     status = q_rhashmap_mk_tid(hashes, num_keys, nT, tids);
     //C \item Use putn() to update keys in one call (instead of a loop)
-    status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, locs,
+    t_start = RDTSC();
+    status = q_rhashmap_putn_I8_I8(hmap, update_type, keys, hashes, locs,
         tids, nT, vals, num_keys, is_founds);
     cBYE(status);
+    t_stop = RDTSC();
+    t_total += (t_stop - t_start);
     status = invariants_I8_I8(hmap); cBYE(status);
     //C \end{itemize}
-    //C Confirm that all keys are found using get
-    for ( int i = 0; i < num_keys; i++ ) { 
-      VALTYPE val; bool is_found;
-      status = q_rhashmap_get_I8_I8(hmap, keys[i], &val, &is_found); cBYE(status);
-      if ( !is_found ) { go_BYE(-1); }
-    }
-    //C \item Get values for all keys using getn
-    status = q_rhashmap_mk_hash_I8(keys, num_keys, hmap->hashkey, hashes);
-    status = q_rhashmap_mk_loc(hashes, num_keys, hmap->size, locs);
-    status = q_rhashmap_getn_I8_I8(hmap, keys, locs, vals, num_keys);
-    cBYE(status);
-    status = invariants_I8_I8(hmap); cBYE(status);
-    //C Confirm that all keys are found
-    for ( int i = 0; i < num_keys; i++ ) { 
-      if ( vals[i] == 0 ) { go_BYE(-1); }
-    }
-    key_ub *= 2;
-    //C \end{itemize}
-    fprintf(stdout, "nitems = %d, size = %d \n",
-        (int)hmap->nitems, (int)hmap->size);
   }
+  //C \end{itemize}
   //C \item  destroy hmap.
   q_rhashmap_destroy_I8_I8(hmap);
   status = invariants_I8_I8(hmap); cBYE(status);
   //C \end{itemize}
   //------------------------------------------------
   t_stop = RDTSC();
+  fprintf(stdout, "Iterations = %d, Keys = %d, Time = %" PRIu64 "\n",
+      num_iters, n, t_total);
   fprintf(stdout, "Passsed  %s in cycles = %" PRIu64 "\n", __func__, (t_stop-t_start));
 BYE:
   free_if_non_null(keys);
@@ -126,7 +142,7 @@ int
 main(void)
 {
   int status = 0;
-  status = test_rand_multi_set(); cBYE(status);
+  status = test_putn_perf(); cBYE(status);
 BYE:
   return status;
 }

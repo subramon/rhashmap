@@ -3,6 +3,10 @@
 typedef struct {
 	__KEYTYPE__  key; 
 	__VALTYPE__ val;
+        // TODO P4: Think through whether hash should be 64 bit
+#ifdef DEBUG
+	uint32_t hash;
+#endif
 	uint16_t psl; // TODO P4: Confirm this is enough
 } q_rh_bucket___KV___t;
 

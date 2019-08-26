@@ -1,5 +1,3 @@
-// TODO: Any advantages to size being a prime number?
-
 /*
  * Copyright (c) 2019 Ramesh Subramonian <subramonian@gmail.com>
  * All rights reserved.
@@ -30,7 +28,19 @@
  *	https://cs.uwaterloo.ca/research/tr/1986/CS-86-14.pdf
  */
 
-#include "_q_rhashmap___KV__.h"
+#include "_q_rhashmap__add___KV__.h"
+
+static int __attribute__((__unused__))
+validate_psl_p(
+    q_rhashmap___KV___t *hmap, 
+    const q_rh_bucket___KV___t *bucket, 
+    uint32_t i
+    )
+{
+  uint32_t base_i = fast_rem32(bucket->hash, hmap->size, hmap->divinfo);
+  uint32_t diff = (base_i > i) ? hmap->size - base_i + i : i - base_i;
+  return bucket->key == 0 || diff == bucket->psl;
+}
 
 /* Checks whether resize is needed. If so, calculates newsize */
 /* Resize needed when occupancy is too high or too low */
@@ -116,8 +126,9 @@ q_rhashmap_get___KV__(
   register uint64_t size    = hmap->size;
   for ( ; ; ) { 
     bucket = &hmap->buckets[i];
+    ASSERT(validate_psl_p(hmap, bucket, i));
 
-    if ( bucket->key == key ) {
+    if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
       *ptr_val = bucket->val;
       *ptr_is_found = true;
       break;
@@ -146,6 +157,7 @@ int
 q_rhashmap_getn___KV__(
     q_rhashmap___KV___t *hmap, // INPUT
     __KEYTYPE__ *keys, // INPUT: [nkeys] 
+    uint32_t *hashes, // INPUT [nkeys]
     uint32_t *locs, // INPUT [nkeys] 
     __VALTYPE__ *vals, // OUTPUT [nkeys] 
     uint32_t nkeys // INPUT 
@@ -158,13 +170,15 @@ q_rhashmap_getn___KV__(
   for ( uint32_t j = 0; j < nkeys; j++ ) {
     uint32_t n = 0; 
     uint32_t i = locs[j];
+    uint32_t hash = hashes[j];
     q_rh_bucket___KV___t *bucket = NULL;
     vals[j]     = 0;
 
     for ( ; ; ) { 
       bucket = &hmap->buckets[i];
+      ASSERT(validate_psl_p(hmap, bucket, i));
 
-      if ( bucket->key == keys[j] ) {
+      if ( ( bucket->hash == hash ) && ( bucket->key == keys[j] ) ) {
         vals[j] = bucket->val;
         break; // found 
       }
@@ -205,6 +219,7 @@ q_rhashmap_insert(
 
   // Setup the bucket entry.
   entry.key   = key;
+  entry.hash  = hash;
   entry.val   = val;
   entry.psl   = 0;
   *ptr_oldval = 0;
@@ -224,9 +239,11 @@ q_rhashmap_insert(
     bucket = &hmap->buckets[i];
     // If there is a key in the bucket.
     if ( bucket->key ) {
+      ASSERT(validate_psl_p(hmap, bucket, i));
 
+      // TODO P4 Why are we comparing the hash at all below?
       // If there is a key in the bucket and its you
-      if ( bucket->key == key ) { 
+      if ( (bucket->hash == hash) && (bucket->key == key) ) { 
         key_updated = true;
         // do the prescribed update 
         *ptr_oldval = bucket->val;
@@ -254,6 +271,7 @@ q_rhashmap_insert(
       }
       entry.psl++;
       /* Continue to the next bucket. */
+      ASSERT(validate_psl_p(hmap, bucket, i));
       num_probes++;
       i = fast_rem32(i + 1, size, divinfo);
     }
@@ -267,6 +285,7 @@ q_rhashmap_insert(
     hmap->nitems++;
   }
 
+  ASSERT(validate_psl_p(hmap, bucket, i));
   *ptr_num_probes = num_probes;
 BYE:
   return status;
@@ -382,8 +401,9 @@ probe:
   if ( n > bucket->psl ) { 
     *ptr_is_found = false; goto BYE;
   }
+  ASSERT(validate_psl_p(hmap, bucket, i));
 
-  if ( bucket->key != key ) { 
+  if ( ( bucket->hash != hash ) || ( bucket->key != key ) ) { 
     /* Continue to the next bucket. */
     i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
     n++;
@@ -395,6 +415,7 @@ probe:
   *ptr_oldval  = bucket->val;
   *ptr_is_found = true;
   bucket->val  = 0; 
+  bucket->hash = 0; 
   bucket->psl  = 0; 
   hmap->nitems--;
 
@@ -407,10 +428,12 @@ probe:
 
     bucket->key = 0;
     bucket->val  = 0; 
+    bucket->hash = 0; 
     bucket->psl  = 0; 
 
     i = fast_rem32(i + 1, hmap->size, hmap->divinfo);
     nbucket = &hmap->buckets[i];
+    ASSERT(validate_psl_p(hmap, nbucket, i));
 
     /*
      * Stop if we reach an empty bucket or hit a key which
@@ -496,6 +519,7 @@ q_rhashmap_putn___KV__(
     q_rhashmap___KV___t *hmap,  // INPUT
     int update_type, // INPUT
     __KEYTYPE__ *keys, // INPUT [nkeys] 
+    uint32_t *hashes, // INPUT [nkeys]
     uint32_t *locs, // INPUT [nkeys] -- starting point for probe
     uint8_t *tids, // INPUT [nkeys] -- thread who should work on it
     int nT,
@@ -506,8 +530,6 @@ q_rhashmap_putn___KV__(
 {
   int status = 0;
   int *is_new = NULL;
-  int num_new = 0;
-  bool need_sequential_put = false;
   register uint32_t hmap_size    = hmap->size;
   register uint64_t hmap_divinfo = hmap->divinfo;
   // quick sanity check 
@@ -524,19 +546,21 @@ q_rhashmap_putn___KV__(
     // TODO P3 Can I avoid get_thread_num() in each iteration?
     register uint32_t mytid = omp_get_thread_num();
     for ( uint32_t j = 0; j < nkeys; j++ ) {
+      // Following so that 2 threads don't deal with same key
+      if ( tids[j] != mytid )  { continue; }
+      register uint32_t hash = hashes[j];
       register q_rh_bucket___KV___t *buckets = hmap->buckets;
       register __KEYTYPE__ key = keys[j];
       register __VALTYPE__ val = vals[j];
       uint32_t i = locs[j]; // fast_rem32(hash, hmap_size, hmap_divinfo);
-      // Following so that 2 threads don't deal with same key
-      if ( tids[j] != mytid )  { continue; }
       is_founds[j] = 0;
       uint32_t n = 0; 
 
       for ( ; ; ) { // search until found 
         q_rh_bucket___KV___t *bucket = buckets + i;
+        ASSERT(validate_psl_p(hmap, bucket, i)); // TODO P4 needed?
 
-        if ( bucket->key == key ) {
+        if ( ( bucket->hash == hash ) && ( bucket->key == key ) ) {
           switch ( update_type ) {
             case Q_RHM_SET : bucket->val  = val; break; 
             case Q_RHM_ADD : bucket->val += val; break;
@@ -559,6 +583,7 @@ q_rhashmap_putn___KV__(
     }
   }
   // Find out if new keys were provided in the above loop
+  bool need_sequential_put = false;
   for ( int i = 0; i < nT; i++ ) { 
     if ( is_new[i] != 0 ) { need_sequential_put = true; }
   }
@@ -566,6 +591,7 @@ q_rhashmap_putn___KV__(
   // TODO P2: Currently, we are scannning the entire list of keys, 
   // looking for the ones to add. Ideally, each thread should keep 
   // a list of keys to be added and we should just scan that list.
+  int num_new = 0;
   if ( need_sequential_put ) { 
     for ( unsigned int i = 0; i < nkeys; i++ ) {
       if ( is_founds[i] == 0 ) {

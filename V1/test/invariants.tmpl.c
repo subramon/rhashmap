@@ -52,11 +52,17 @@ invariants___KV__(
   return_if_malloc_failed(keys);
   for ( unsigned int i = 0; i < hmap->size; i++ ) { 
     if ( buckets[i].key == 0 ) { 
+#ifdef DEBUG
+       if ( buckets[i].hash != 0 ) { go_BYE(-1); }
+#endif
       // Following is a defensive procedure i.e., zero out null entries
       if ( buckets[i].val  != 0 ) { go_BYE(-1); }
       if ( buckets[i].psl  != 0 ) { go_BYE(-1); }
     }
     else {
+#ifdef DEBUG
+      if ( buckets[i].hash == 0 ) { go_BYE(-1); }
+#endif
       // Accumulate all keys into array called "keys"
       keys[nkeys++] = buckets[i].key;
     }
