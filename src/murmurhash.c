@@ -10,7 +10,7 @@
 
 #include <inttypes.h>
 
-#include "q_rhashmap_utils.h"
+#include "hmap_utils.h"
 
 uint32_t
 murmurhash3(

@@ -18,5 +18,16 @@ for _, qkeytype in ipairs(keytypes) do
   subs.qkeytype = qkeytype
   gen_code.doth(subs, incdir)
   num_produced = num_produced + 1
+  --======================
+  subs.fn = "hmap_mk_hash_" .. qkeytype
+  subs.tmpl = "hmap_mk_hash.tmpl.lua"
+  -- notice that key is unsigned
+  subs.ckeytype = "u" .. assert(qconsts.qtypes[qkeytype].ctype)
+  subs.qkeytype = qkeytype
+  gen_code.doth(subs, incdir)
+  gen_code.dotc(subs, srcdir)
+  --======================
+  num_produced = num_produced + 2
 end
+print("Produced # files = ", num_produced)
 assert(num_produced > 0)

@@ -7,9 +7,9 @@
 
 //------------------------------------------------------
 //START_INCLUDES
-#include "q_rhashmap_common.h"
+#include "hmap_common.h"
 //STOP_INCLUDES
-#include "q_rhashmap_mk_tid.h"
+#include "hmap_mk_tid.h"
 
 /* Ideally, we want to distribute the work to the threads so that
  * 1) they never update the same cell
@@ -25,7 +25,7 @@ It only gives you a starting point for the hunt for the location of a key
 
 //START_FUNC_DECL
 int 
-q_rhashmap_mk_tid(
+hmap_mk_tid(
     uint32_t *hashes, // input  [nkeys] 
     uint32_t nkeys, // input 
     uint32_t nT, // input , number of threads

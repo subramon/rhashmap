@@ -30,4 +30,14 @@
 #define	HIGH_WATER_MARK 0.85
 
 #define RH_CHUNK_SIZE 1024
+
+typedef struct {
+	uint32_t size;
+	uint32_t nitems;
+	uint64_t divinfo;
+	void     *buckets;
+	uint64_t hashkey;
+	uint32_t minsize;
+} q_rhashmap_t;
+
 #endif

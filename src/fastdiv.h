@@ -32,7 +32,7 @@
 
 #include <inttypes.h>
 
-#include "q_rhashmap_utils.h"
+#include "hmap_utils.h"
 
 /*
  * Fast 32bit division and remainder.

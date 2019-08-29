@@ -5,12 +5,12 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 //START_INCLUDES
-#include "q_rhashmap_common.h"
+#include "hmap_common.h"
 //STOPINCLUDES
-#include "_q_rhashmap_mk_loc.h"
+#include "_hmap_mk_loc.h"
 //START_FUNC_DECL
 int 
-q_rhashmap_mk_loc(
+hmap_mk_loc(
     uint32_t *hashes, // input  [nkeys] 
     uint32_t nkeys, // input 
     uint32_t hmap_size, // input 
