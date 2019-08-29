@@ -6,7 +6,9 @@
  */
 
 //------------------------------------------------------
+//START_INCLUDES
 #include "q_rhashmap_common.h"
+//STOP_INCLUDES
 #include "q_rhashmap_mk_tid.h"
 
 /* Ideally, we want to distribute the work to the threads so that
@@ -21,6 +23,7 @@ Note that locs doesn't give you the location of a key.
 It only gives you a starting point for the hunt for the location of a key
  */
 
+//START_FUNC_DECL
 int 
 q_rhashmap_mk_tid(
     uint32_t *hashes, // input  [nkeys] 
@@ -28,6 +31,7 @@ q_rhashmap_mk_tid(
     uint32_t nT, // input , number of threads
     uint8_t *tids // output [nkeys] 
     )
+//STOP_FUNC_DECL
 {
   int status = 0;
   int chunk_size = 1024;

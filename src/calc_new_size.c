@@ -34,7 +34,7 @@ calc_new_size(
     /*
      * If the load factor is more than the threshold, then resize.
      */
-    threshold = (uint32_t)(0.85 * (float)size);
+    threshold = (uint32_t)(HIGH_WATER_MARK * (float)size);
     // TODO P4 Clean up the following code 
     if ( nitems > threshold ) { 
       *ptr_resize = true;

@@ -29,4 +29,5 @@
 #define	LOW_WATER_MARK 0.4
 #define	HIGH_WATER_MARK 0.85
 
+#define RH_CHUNK_SIZE 1024
 #endif
