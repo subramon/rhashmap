@@ -30,74 +30,9 @@
  *	https://cs.uwaterloo.ca/research/tr/1986/CS-86-14.pdf
  */
 
+#include "_calc_new_size.h"
+#include "_validate_psl_p.h"
 #include "_q_rhashmap___KV__.h"
-
-#ifdef DEBUG
-static int __attribute__((__unused__))
-validate_psl_p(
-    q_rhashmap___KV___t *hmap, 
-    const q_rh_bucket___KV___t *bucket, 
-    uint32_t i
-    )
-{
-  uint32_t base_i = fast_rem32(bucket->hash, hmap->size, hmap->divinfo);
-  uint32_t diff = (base_i > i) ? hmap->size - base_i + i : i - base_i;
-  return bucket->key == 0 || diff == bucket->psl;
-}
-#endif
-
-/* Checks whether resize is needed. If so, calculates newsize */
-/* Resize needed when occupancy is too high or too low */
-static int
-calc_new_size(
-    uint32_t nitems, 
-    uint32_t minsize, 
-    uint32_t size, 
-    bool decreasing, 
-    /* true =>  just added an element and are concerned about sparsity
-     * false=> just added an element and are concerned about denseness
-    */
-    uint32_t *ptr_newsize,
-    bool *ptr_resize
-    )
-{
-  int status = 0;
-  *ptr_resize = false;
-  *ptr_newsize = 0;
-  uint32_t threshold;
-  if ( decreasing ) { 
-    /*
-     * If the load factor is less than threshold, then shrink by
-     * halving the size, but not more than the minimum size.
-     */
-    threshold = (uint32_t)(LOW_WATER_MARK * size);
-    if ( ( nitems > minsize ) && ( nitems < threshold ) ) {
-      *ptr_resize = true;
-      *ptr_newsize = MAX(size >> 1, minsize);
-    }
-  }
-  else {
-    /*
-     * If the load factor is more than the threshold, then resize.
-     */
-    threshold = (uint32_t)(0.85 * (float)size);
-    // TODO P4 Clean up the following code 
-    if ( nitems > threshold ) { 
-      *ptr_resize = true;
-      for ( ; nitems > threshold; ) { 
-        /*
-         * Grow the hash table by doubling its size, but with
-         * a limit of MAX_GROWTH_STEP.
-         */
-       // TODO: P4 Worry about overflow in addition below
-        const size_t grow_limit = size + MAX_GROWTH_STEP;
-        *ptr_newsize = MIN(size << 1, grow_limit);
-        threshold = (uint32_t)(0.85 * *ptr_newsize);
-      }
-    }
-  }
-  return status;
-}
 
 /*
  * q_rhashmap_get: lookup an value given the key.
@@ -513,29 +448,6 @@ q_rhashmap_create___KV__(
   if (hmap->buckets == NULL ) { WHEREAMI; return NULL; }
   if (hmap->size    == 0    ) { WHEREAMI; return NULL; }
   return hmap;
-}
-
-/*
- * rhashmap_destroy: free the memory used by the hash table.
- *
- * => It is the responsibility of the caller to remove elements if needed.
- */
-void
-q_rhashmap_destroy___KV__(
-    q_rhashmap___KV___t *ptr_hmap
-    )
-{
-  free(ptr_hmap->buckets);
-  ptr_hmap->buckets = NULL;
-  ptr_hmap->size = 0;
-  ptr_hmap->nitems = 0;
-  ptr_hmap->divinfo = 0;
-  ptr_hmap->buckets = 0;
-  ptr_hmap->hashkey = 0;
-  ptr_hmap->minsize = 0;
-
-  free(ptr_hmap);
-  ptr_hmap = NULL;
 }
 
 // Given 
