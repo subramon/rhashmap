@@ -34,7 +34,7 @@ ${fn}(
   hmap->psls = calloc(hmap->size, sizeof(uint16_t)); 
   return_if_malloc_failed(hmap->psls);
 
-  hmap->vals = calloc(hmap->size, sizeof(${aggvaltype}));
+  hmap->vals = calloc(hmap->size, sizeof(${caggvaltype}));
   return_if_malloc_failed(hmap->vals);
 #ifdef DEBUG
   hmap->hashes = calloc(hmap->size, sizeof(uint32_t)); 

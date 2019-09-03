@@ -2,16 +2,14 @@ return require 'Q/UTILS/lua/code_gen' {
 declaration = [[
 #include "hmap_common.h"
 #include "fastdiv.h"
-#include "_hmap_type_${qkeytype}.h"
-typedef hmap_${qkeytype}_t        hmap_type;
-typedef hmap_bucket_${qkeytype}_t bkt_type ;
+#include "_hmap_types.h"
 
 extern int
 ${fn}(
-    hmap_type *ptr_hmap, 
+    hmap_t *ptr_hmap, 
     ${ckeytype} key,
-    ${cvaltype} val,
-    ${cvaltype} *ptr_oldval,
+    ${caggvaltype} val,
+    ${caggvaltype} *ptr_oldval,
     int *ptr_num_probes
     );
 ]],
@@ -20,22 +18,23 @@ definition = [[
 // rhashmap_insert: internal rhashmap_put(), without the resize.
 int
 ${fn}(
-    hmap_type *ptr_hmap, 
+    hmap_t *ptr_hmap, 
     ${ckeytype} key,
     ${cvaltype} val,
-    ${cvaltype} *ptr_oldval,
+    ${caggvaltype} *ptr_oldval,
     int *ptr_num_probes
     )
 {
   int status = 0;
-  const uint32_t hash = murmurhash3(&key, sizeof(${ckeytype}), ptr_hmap->hashkey);
+  const uint32_t hash = murmurhash3(
+    &key, sizeof(${ckeytype}), ptr_hmap->hashkey);
   bkt_type *ptr_bucket, entry;
   uint32_t i;
   int num_probes = 0;
   register uint32_t size    = ptr_hmap->size;
   register uint64_t divinfo = ptr_hmap->divinfo;
   bool key_updated = false;
-  ${cvaltype} *vals = (${cvaltype} *)ptr_hmap->vals;
+  ${caggvaltype} *vals = (${caggvaltype} *)ptr_hmap->vals;
 
   // 0 is not a valid value for a key, 
   // Note that we do NOT throw an error

@@ -2,10 +2,7 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#include "_q_rhashmap_I8_I8.h"
-#include "_invariants_I8_I8.h"
-#define VALTYPE  int64_t
-#define KEYTYPE uint64_t
+#include "_hmap_create.h"
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -18,6 +15,8 @@ RDTSC(
 }
 //---------------------------------------
 
+typedef uint64_t keytype ;
+typedef int64_t valytype ;
 static int
 test_basic(
     void
@@ -27,22 +26,22 @@ test_basic(
   //C Simplest test.
   int status = 0;
   int np = 0; // num_probes
-  q_rhashmap_I8_I8_t *hmap = NULL;
-  VALTYPE val = 0, oldval;
+  hmap_t *hmap = NULL;
+  valtype val, oldval;
   bool key_exists;
-  KEYTYPE key = 123;
+  keytype key = 123;
   uint64_t t_stop, t_start = RDTSC();
   bool is_found;
 
   //C \begin{itemize}
   //C \item Create a hashmap with default size 0. 
-  hmap = q_rhashmap_create_I8_I8(0);
-  status = invariants_I8_I8(hmap); cBYE(status);
+  hmap = hmap_create(0);
+  // TODO status = invariants_I8_I8(hmap); cBYE(status);
   //C Should succeed.
   if ( hmap == NULL) { go_BYE(-1); }
 
   //C \item Look for a key that has not been inserted. 
-  status = q_rhashmap_get_I8_I8(hmap, key, &val, &is_found); cBYE(status);
+  status = hmap_get(hmap, key, &val, &is_found); cBYE(status);
   //C Should not be found. Returned value should be 0.
   if ( is_found ) { go_BYE(-1); }
   if ( val != 0 ) { go_BYE(-1); }
@@ -51,8 +50,8 @@ test_basic(
   //C and incrementing value by 1 each time through the loop.
   int niters = 10;
   for ( int iter = 0; iter < niters; iter++ ) { 
-    VALTYPE chk_oldval = val;
-    status = q_rhashmap_put_I8_I8(hmap, key, ++val, Q_RHM_SET, &oldval, &np);
+    valtype chk_oldval = va
+    status = hmap_put(hmap, key, ++val, Q_RHM_SET, &oldval, &np);
     cBYE(status);
     status = invariants_I8_I8(hmap); cBYE(status);
     if ( oldval != chk_oldval ) { go_BYE(-1); }

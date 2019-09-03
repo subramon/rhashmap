@@ -1,12 +1,11 @@
 return require 'Q/UTILS/lua/code_gen'   {
 declaration = [[
 #include "hmap_common.h"
-#include "_hmap_type_${qkeytype}.h"
-#include "_hmap_insert_${qkeytype}_${qvaltype}.h"
-// typedef hmap_bucket_${qkeytype}_t bkt_type ;
+#include "_hmap_types.h"
+#include "_hmap_insert.h"
 extern int
 ${fn}(
-    hmap_${qkeytype}_t *hmap, 
+    hmap_t *hmap, 
     size_t newsize,
     int *ptr_num_probes
     );
@@ -16,35 +15,57 @@ definition = [[
 
 int
 ${fn}(
-    hmap_${qkeytype}_t *ptr_hmap, 
+    hmap_t *ptr_hmap, 
     size_t newsize,
     int *ptr_num_probes
     )
 {
   int status = 0;
-  bkt_type *oldbuckets = ptr_hmap->buckets;
+  ${ckeytype} *oldkeys  = ptr_hmap->keys;
+  ${caggvaltype} *oldvals  = ptr_hmap->vals;
   const size_t oldsize = ptr_hmap->size;
-  bkt_type *newbuckets = NULL;
-  ${cvaltype} *newvals    = NULL;
-  ${cvaltype} *oldvals    = ptr_hmap->vals;
+
+  ${ckeytype} *newkeys = NULL;
+  ${caggvaltype} *newvals = NULL;
+  uint16_t    *newpsls = NULL;
+#ifdef DEBUG
+  uint32_t *newhashes  = NULL;
+#endif
+
   int num_probes      = 0;
 
-
   // some obvious logical checks
-  if ( ( oldbuckets == NULL ) && ( oldsize != 0 ) ) { go_BYE(-1); }
-  if ( ( oldbuckets != NULL ) && ( oldsize == 0 ) ) { go_BYE(-1); }
+  if ( ptr_hmap == NULL ) { go_BYE(-1); }
+  if ( ( oldkeys == NULL ) && ( oldsize != 0 ) ) { go_BYE(-1); }
+  if ( ( oldvals == NULL ) && ( oldsize != 0 ) ) { go_BYE(-1); }
   if ( ( newsize <= 0 ) || ( newsize >= UINT_MAX ) )  { go_BYE(-1); }
-  if ( newsize <= ptr_hmap->nitems ) { go_BYE(-1); }
+  if ( newsize <= (ptr_hmap->nitems/HIGH_WATER_MARK) ) { go_BYE(-1); }
 
-  // allocate buckets.  
-  newbuckets = calloc(newsize, sizeof(bkt_type));
-  return_if_malloc_failed(newbuckets);
+  free_if_non_null(ptr_hmap->psls);
+#ifdef DEBUG
+  free_if_non_null(ptr_hmap->hashes);
+#endif
 
-  newvals = calloc(newsize, sizeof(${cvaltype}));
-  return_if_malloc_failed(newvals);
+  // allocate new storage
+  newkeys = calloc(newsize, sizeof(${ckeytype}));
+  newvals = calloc(newsize, sizeof(${caggvaltype}));
+  newpsls   = calloc(newsize, sizeof(uint16_t));
+#ifdef DEBUG
+  newhashes = calloc(newsize, sizeof(uint32_t));
+#endif
+
+#ifdef DEBUG
+  if ( ( newhashes == NULL ) { go_BYE(-1); }
+#endif
+  if ( ( newkeys == NULL ) || ( newvals == NULL ) || 
+       ( newpsls == NULL ) ) { go_BYE(-1); }
 
   ptr_hmap->vals    = newvals;
-  ptr_hmap->buckets = newbuckets;
+  ptr_hmap->keys    = newkeys;
+  ptr_hmap->psls    = newpsls;
+#ifdef DEBUG
+  ptr_hmap->hashes  = newhashes;
+#endif
   ptr_hmap->size    = newsize;
   ptr_hmap->nitems  = 0;
 
@@ -53,15 +74,14 @@ ${fn}(
   ptr_hmap->hashkey ^= random() | (random() << 32);
 
   for ( uint32_t i = 0; i < oldsize; i++) {
-    const bkt_type *bucket = oldbuckets + i;
-    /* Skip the empty buckets. */
-    if ( !bucket->key ) { continue; }
-    ${cvaltype}  oldval;  // needed only to match function signature
-    status = hmap_insert_${qkeytype}_${qvaltype}(
-      ptr_hmap, bucket->key, oldvals[i], &oldval, &num_probes);
+    ${ckeytype} key = ptr_hmap->keys[i];
+    if ( key == 0 ) { continue; }  // skip empty slot 
+    ${caggvaltype} val = ptr_hmap->vals[i];
+    ${caggvaltype}  oldval;  // needed only to match function signature
+    status = hmap_insert( ptr_hmap, key, val, &oldval, &num_probes);
     cBYE(status);
   }
-  free_if_non_null(oldbuckets);
+  free_if_non_null(oldkeys);
   free_if_non_null(oldvals);
   *ptr_num_probes = num_probes;
 BYE:
