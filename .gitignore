@@ -4,3 +4,7 @@ _*
 *.a
 t_rhashmap
 test_q_rhashmap
+gen_inc/
+gen_src/
+xgen_inc/
+xgen_src/
