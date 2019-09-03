@@ -29,7 +29,6 @@ local function libgen(
     assert( ( invaltype == "I1" ) or ( invaltype == "I2" )  or
             ( invaltype == "I4" ) or ( invaltype == "I8" )  or
             ( invaltype == "F4" ) or ( invaltype == "F8" ) ) 
-
     local aggtype    = assert(v.aggtype)
     local aggvaltype = v.aggvaltype -- note this is optional
     if ( aggvaltype ) then 
@@ -51,7 +50,7 @@ local function libgen(
     end
     if ( not aggvaltype ) then aggvaltype = invaltype end
     --====================
-    invalstype[i]  = valtype 
+    invalstype[i]  = invaltype 
     aggvalstype[i] = aggvaltype
     aggstype[i]    = aggtype
     --====================
@@ -63,30 +62,37 @@ local function libgen(
   -- notice that key is unsigned
   subs.ckeytype = "u" .. assert(qconsts.qtypes[keytype].ctype)
   if ( num_vals == 1 ) then 
-    local cvaltype = assert(qconsts.qtypes[aggvalstype[i]].ctype)
-    subs.caggvaltype = cvaltype
+    subs.cinvaltype  = assert(qconsts.qtypes[invalstype[1]].ctype) 
+    subs.caggvaltype = assert(qconsts.qtypes[aggvalstype[1]].ctype)
+
+    subs.agg_val_rec = " ";
+    subs.in_val_rec = " ";
   else
-    subs.caggvaltype = "VAL_REC_TYPE";
-  end
-  --===============================
-  subs.tmpl = "hmap_type.tmpl.lua"
-  subs.fn = "hmap_types"
-  subs.NUM_VALS = num_vals
-  if ( num_vals == 1 ) then 
-    cvaltype = assert(qconsts.qtypes[aggvalstype[1]].ctype)
-    subs.val_spec = cvaltype .. " *vals; "
-    subs.val_rec = " ";
-  else 
+    subs.caggvaltype = "AGG_VAL_REC_TYPE";
+    subs.cinvaltype  = "IN_VAL_REC_TYPE";
+
     local X = {}
-    X[#X+1] = "typedef struct _val_rec_type { ";
+    X[#X+1] = "typedef struct _in_val_rec_type { ";
+    for i = 1, num_vals do 
+      local cvaltype = assert(qconsts.qtypes[invalstype[i]].ctype)
+      X[#X+1] = "  " .. cvaltype .. " val_" .. tostring(i) .. ";" ;
+    end
+    X[#X+1] = " } IN_VAL_REC_TYPE ; ";
+    subs.in_val_rec = table.concat(X, "\n");
+
+    local X = {}
+    X[#X+1] = "typedef struct _agg_val_rec_type { ";
     for i = 1, num_vals do 
       local cvaltype = assert(qconsts.qtypes[aggvalstype[i]].ctype)
       X[#X+1] = "  " .. cvaltype .. " val_" .. tostring(i) .. ";" ;
     end
-    X[#X+1] = " } VAL_REC_TYPE ; ";
-    subs.val_rec = table.concat(X, "\n");
-    subs.val_spec = "VAL_REC_TYPE *vals; "
+    X[#X+1] = " } AGG_VAL_REC_TYPE ; ";
+    subs.agg_val_rec = table.concat(X, "\n");
+
   end
+  subs.tmpl = "hmap_type.tmpl.lua"
+  subs.fn = "hmap_types"
+  subs.NUM_VALS = num_vals
   gen_code.doth(subs, incdir)
   -- 2) hmap_mk_hash.[c, h]
   subs.tmpl = "hmap_mk_hash.tmpl.lua"
@@ -135,6 +141,8 @@ local function libgen(
   X[#X+1] = srcdir .. "_hmap_create.c" 
   X[#X+1] = srcdir .. "_hmap_resize.c" 
   X[#X+1] = srcdir .. "_hmap_get.c" 
+  X[#X+1] = srcdir .. "_hmap_put.c" 
+--  X[#X+1] = srcdir .. "_hmap_del.c" 
   X[#X+1] = " "
   local command = "gcc -shared " .. qconsts.QC_FLAGS .. incs .. 
     " -o " .. libname 

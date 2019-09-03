@@ -32,7 +32,7 @@ ${fn}(
   uint32_t *newhashes  = NULL;
 #endif
 
-  int num_probes      = 0;
+  int num_probes      = *ptr_num_probes;
 
   // some obvious logical checks
   if ( ptr_hmap == NULL ) { go_BYE(-1); }

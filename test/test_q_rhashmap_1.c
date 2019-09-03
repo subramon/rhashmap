@@ -3,6 +3,9 @@
  */
 
 #include "_hmap_create.h"
+#include "_hmap_destroy.h"
+#include "_hmap_get.h"
+#include "_hmap_put.h"
 //---------------------------------------
 static uint64_t
 RDTSC(
@@ -16,7 +19,8 @@ RDTSC(
 //---------------------------------------
 
 typedef uint64_t keytype ;
-typedef int64_t valytype ;
+typedef int64_t invaltype ;
+typedef int64_t aggvaltype ;
 static int
 test_basic(
     void
@@ -27,7 +31,8 @@ test_basic(
   int status = 0;
   int np = 0; // num_probes
   hmap_t *hmap = NULL;
-  valtype val, oldval;
+  valtype newval; 
+  aggvaltype oldval;
   bool key_exists;
   keytype key = 123;
   uint64_t t_stop, t_start = RDTSC();
@@ -41,54 +46,56 @@ test_basic(
   if ( hmap == NULL) { go_BYE(-1); }
 
   //C \item Look for a key that has not been inserted. 
-  status = hmap_get(hmap, key, &val, &is_found); cBYE(status);
+  status = hmap_get(hmap, key, &oldval, &is_found); cBYE(status);
   //C Should not be found. Returned value should be 0.
   if ( is_found ) { go_BYE(-1); }
-  if ( val != 0 ) { go_BYE(-1); }
+  if ( oldval != 0 ) { go_BYE(-1); }
 
   //C \item Put the same key {\tt niters} times, starting with value 0 
   //C and incrementing value by 1 each time through the loop.
   int niters = 10;
+  newval = 0;
   for ( int iter = 0; iter < niters; iter++ ) { 
-    valtype chk_oldval = va
-    status = hmap_put(hmap, key, ++val, Q_RHM_SET, &oldval, &np);
+    valtype chk_oldval = newval;
+    status = hmap_put(hmap, key, ++newval, Q_RHM_SET, &oldval, &np);
     cBYE(status);
-    status = invariants_I8_I8(hmap); cBYE(status);
+    // status = invariants_I8_I8(hmap); cBYE(status);
     if ( oldval != chk_oldval ) { go_BYE(-1); }
   }
   //C Each time, old value of key should be previous value.
   //C \item Get value of key at end of loop.
-  status = q_rhashmap_get_I8_I8(hmap, key, &val, &is_found); cBYE(status);
+  status = hmap_get(hmap, key, &oldval, &is_found); cBYE(status);
   //C Should be iters
   if ( !is_found ) { go_BYE(-1); }
-  if ( val != niters ) { go_BYE(-1); }
+  if ( oldval != niters ) { go_BYE(-1); }
 
   //C \item Delete the key.
-  status = q_rhashmap_del_I8_I8(hmap, key, &oldval, &key_exists); cBYE(status);
+  status = hmap_del(hmap, key, &oldval, &key_exists); cBYE(status);
   //C Delete should succeed and indicate key existed.
   if ( ! key_exists ) { go_BYE(-1); }
-  status = invariants_I8_I8(hmap); cBYE(status);
+  // TODO status = invariants_I8_I8(hmap); cBYE(status);
 
   //C \item Delete the key again.
-  status = q_rhashmap_del_I8_I8(hmap, key, &oldval, &key_exists); cBYE(status);
+  status = hmap_del(hmap, key, &oldval, &key_exists); cBYE(status);
   //C Delete should succeed and indicate key did not exist.
   if ( key_exists ) { go_BYE(-1); }
 
   //C \item Get the value of the key.
-  status = q_rhashmap_get_I8_I8(hmap, key, &val, &is_found); cBYE(status);
+  status = hmap_get(hmap, key, &oldval, &is_found); cBYE(status);
   //C Should not be found
   if ( is_found ) { go_BYE(-1); }
-  if ( val != 0 ) { go_BYE(-1); }
+  if ( oldval != 0 ) { go_BYE(-1); }
 
-  status = invariants_I8_I8(hmap); cBYE(status);
+  // TODO status = invariants_I8_I8(hmap); cBYE(status);
   //C \item Destroy the hashmap
-  q_rhashmap_destroy_I8_I8(hmap);
+  hmap_destroy(hmap);
   t_stop = RDTSC();
   //C \end{itemize}
   fprintf(stdout, "Passsed  %s in cycles = %" PRIu64 "\n", __func__, (t_stop-t_start));
 BYE:
   return status;
 }
+
 int main(void)
 {
   int status = 0;

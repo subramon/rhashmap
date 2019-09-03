@@ -20,7 +20,7 @@ int
 ${fn}(
     hmap_t *ptr_hmap, 
     ${ckeytype} key,
-    ${cvaltype} val,
+    ${caggvaltype} val,
     ${caggvaltype} *ptr_oldval,
     int *ptr_num_probes
     )
@@ -30,7 +30,7 @@ ${fn}(
     &key, sizeof(${ckeytype}), ptr_hmap->hashkey);
   bkt_type *ptr_bucket, entry;
   uint32_t i;
-  int num_probes = 0;
+  int num_probes = *ptr_num_probes;
   register uint32_t size    = ptr_hmap->size;
   register uint64_t divinfo = ptr_hmap->divinfo;
   bool key_updated = false;

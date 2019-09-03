@@ -12,36 +12,8 @@ fi
 
 # TODO Run with DEBUG flag on and off
 
-CFLAGS=" DDEBUG -std=gnu99 -Wall -Wextra -fopenmp -g -D_GNU_SOURCE -D_DEFAULT_SOURCE -Wno-unknown-warning-option  -Wstrict-prototypes -Wmissing-prototypes -Wpointer-arith -Wmissing-declarations -Wredundant-decls -Wnested-externs -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wold-style-definition -Wsuggest-attribute=noreturn -Wduplicated-cond -Wmisleading-indentation -Wnull-dereference -Wduplicated-branches -Wrestrict "
 VG=" valgrind --leak-check=full --show-leak-kinds=all  "
 
-cat invariants.tmpl.c | \
-  sed s'/__KV__/I8_I8/g ' | \
-  sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _invariants_I8_I8.c
-cat invariants.tmpl.h | \
-  sed s'/__KV__/I8_I8/g ' | \
-  sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _invariants_I8_I8.h
-cat ../src/q_rhashmap.tmpl.h | \
-  sed s'/__KV__/I8_I8/g ' | \
-  sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_I8_I8.h
-cat ../src/q_rhashmap_mk_hash.tmpl.h | \
-  sed s'/__K__/I8/g ' | \
-  sed s'/__KEYTYPE__/uint64_t/g ' > _q_rhashmap_mk_hash_I8.h
-cat ../src/q_rhashmap_mk_hash.tmpl.c | \
-  sed s'/__K__/I8/g ' | \
-  sed s'/__KEYTYPE__/uint64_t/g ' > _q_rhashmap_mk_hash_I8.c
-cat ../src/q_rhashmap_struct.tmpl.h | \
-  sed s'/__KV__/I8_I8/g ' | \
-  sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_struct_I8_I8.h
-cat ../src/q_rhashmap.tmpl.c | \
-  sed s'/__KV__/I8_I8/g ' | \
-  sed s'/__KEYTYPE__/uint64_t/g ' | \
-  sed s'/__VALTYPE__/int64_t/g ' > _q_rhashmap_I8_I8.c
-FILES=" ../src/calc_new_size.c _q_rhashmap_mk_hash_I8.c _q_rhashmap_I8_I8.c ../src/q_rhashmap_mk_tid.c ../src/q_rhashmap_mk_loc.c ../src/murmurhash.c _invariants_I8_I8.c  "
 
 VG="" # Uncomment this line if you do not want Valgrind to run
 
@@ -51,9 +23,10 @@ else
   ls test_q_rhashmap_*.c | grep $TESTNUM > _files
 fi
 nfiles=0
+INCS="-I../inc/ -I../xgen_inc/ "
 while read line; do
   echo "Testing $line"
-  gcc $CFLAGS -I. -I../inc/ -I../src/ $FILES $line -o a.out
+  gcc $QC_FLAGS ${INCS} $line -o a.out ../lua/libfoobar.so
   $VG ./a.out 1> _out 2>_err
   cat _out
   if [ "$VG" != "" ]; then 
@@ -62,6 +35,9 @@ while read line; do
   nfiles=`expr $nfiles + 1 `
 done < _files
 if [ $nfiles = 0 ]; then echo "ERROR: No files to test"; exit 1; fi
+
+echo "PREMATURE"
+exit 0
 
 ##--------
 gcc -std=gnu99 -I../src/ test_fastdiv.c; ./a.out

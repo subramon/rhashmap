@@ -3,7 +3,8 @@ return  require 'Q/UTILS/lua/code_gen' {
 #ifndef __HMAP_TYPE_H
 #define __HMAP_TYPE_H
 
-${val_rec}
+${agg_val_rec}
+${in_val_rec}
 
 #define NUM_VALS ${NUM_VALS}
 
@@ -12,7 +13,7 @@ typedef struct {
   uint32_t nitems;
   uint64_t divinfo;
   ${ckeytype}  *keys; 
-  ${val_spec} 
+  ${caggvaltype} *vals;
 #ifdef DEBUG
   uint32_t *hashes;
 #endif
