@@ -9,7 +9,7 @@
 //START_INCLUDES
 #include "hmap_common.h"
 //STOP_INCLUDES
-#include "hmap_mk_tid.h"
+#include "_hmap_mk_tid.h"
 
 /* Ideally, we want to distribute the work to the threads so that
  * 1) they never update the same cell

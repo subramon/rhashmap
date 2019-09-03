@@ -5,8 +5,8 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
-#ifndef _Q_RHASHMAP__H
-#define _Q_RHASHMAP_H
+#ifndef _HMAP_H
+#define _HMAP_H
 
 #include <assert.h>
 #include <inttypes.h>
@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <omp.h>
-#include "q_macros.h"
+#include "macros.h"
 #include "fastdiv.h"
 
 #define	Q_RHM_SET  1
@@ -30,14 +30,5 @@
 #define	HIGH_WATER_MARK 0.85
 
 #define RH_CHUNK_SIZE 1024
-
-typedef struct {
-	uint32_t size;
-	uint32_t nitems;
-	uint64_t divinfo;
-	void     *buckets;
-	uint64_t hashkey;
-	uint32_t minsize;
-} q_rhashmap_t;
 
 #endif

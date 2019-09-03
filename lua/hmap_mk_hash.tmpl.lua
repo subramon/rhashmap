@@ -1,6 +1,6 @@
 return  require 'Q/UTILS/lua/code_gen' { 
 declaration = [[ 
-#include "q_rhashmap_common.h"
+#include "hmap_common.h"
 extern int 
 ${fn}(
     ${ckeytype} *keys, // input  [nkeys] 

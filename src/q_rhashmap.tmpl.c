@@ -247,54 +247,6 @@ q_rhashmap_insert(
 BYE:
   return status;
 }
-
-static int
-q_rhashmap_resize(
-    q_rhashmap___KV___t *hmap, 
-    size_t newsize
-    )
-{
-  int status = 0;
-  q_rh_bucket___KV___t *oldbuckets = hmap->buckets;
-  const size_t oldsize = hmap->size;
-  q_rh_bucket___KV___t *newbuckets = NULL;
-  const size_t len = newsize * sizeof(q_rh_bucket___KV___t);
-  int num_probes = 0;
-
-  // some obvious logical checks
-  if ( ( oldbuckets == NULL ) && ( oldsize != 0 ) ) { go_BYE(-1); }
-  if ( ( oldbuckets != NULL ) && ( oldsize == 0 ) ) { go_BYE(-1); }
-  if ( ( newsize <= 0 ) || ( newsize >= UINT_MAX ) )  { go_BYE(-1); }
-  if ( newsize < hmap->nitems ) { go_BYE(-1); }
-
-  // allocate buckets.  
-  newbuckets = malloc(len);
-  return_if_malloc_failed(newbuckets);
-  memset(newbuckets, '\0', len);
-
-  hmap->buckets = newbuckets;
-  hmap->size    = newsize;
-  hmap->nitems  = 0;
-
-   // generate a new hash key/seed every time we resize the hash table.
-  hmap->divinfo = fast_div32_init(newsize);
-  hmap->hashkey ^= random() | (random() << 32);
-
-  for ( uint32_t i = 0; i < oldsize; i++) {
-    const q_rh_bucket___KV___t *bucket = &oldbuckets[i];
-
-    /* Skip the empty buckets. */
-    if ( !bucket->key ) { continue; }
-
-    __VALTYPE__ oldval; // not needed except for signature
-    q_rhashmap_insert(hmap, bucket->key, bucket->val, Q_RHM_SET, &oldval,
-        &num_probes);
-  }
-  free_if_non_null(oldbuckets);
-BYE:
-  return status;
-}
-
 /*
  * rhashmap_put: insert a value given the key.
  *
@@ -423,33 +375,6 @@ probe:
 BYE:
   return status;
 }
-
-/*
- * rhashmap_create: construct a new hash table.
- *
- * => If size is non-zero, then pre-allocate the given number of buckets;
- * => If size is zero, then a default minimum is used.
- */
-q_rhashmap___KV___t *
-q_rhashmap_create___KV__(
-      size_t size
-        )
-{
-  q_rhashmap___KV___t *hmap = NULL;
-
-  hmap = calloc(1, sizeof(q_rhashmap___KV___t));
-  if ( hmap == NULL ) { return NULL; }
-
-  hmap->minsize = MAX(size, HASH_INIT_SIZE);
-  if ( q_rhashmap_resize(hmap, hmap->minsize) != 0) {
-    free(hmap);
-    return NULL;
-  }
-  if (hmap->buckets == NULL ) { WHEREAMI; return NULL; }
-  if (hmap->size    == 0    ) { WHEREAMI; return NULL; }
-  return hmap;
-}
-
 // Given 
 // (1) a set of keys 
 // (2) hash for each key

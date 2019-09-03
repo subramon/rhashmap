@@ -1,7 +1,7 @@
 //START_INCLUDES
-#include "q_rhashmap_common.h"
+#include "hmap_common.h"
 //STOP_INCLUDES
-#include "calc_new_size.h"
+#include "_calc_new_size.h"
 /* Checks whether resize is needed. If so, calculates newsize */
 /* Resize needed when occupancy is too high or too low */
 //START_FUNC_DECL
@@ -18,7 +18,6 @@ calc_new_size(
     bool *ptr_resize
     )
 //STOP_FUNC_DECL
-int
 {
   int status = 0;
   *ptr_resize = false;
