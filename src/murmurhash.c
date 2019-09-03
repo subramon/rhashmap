@@ -8,16 +8,19 @@
  *	https://github.com/aappleby/smhasher/
  */
 
+//START_INCLUDES
 #include <inttypes.h>
-
 #include "hmap_utils.h"
-
+//STOP_INCLUDES
+#include "_murmurhash.h"
+//START_FUNC_DECL
 uint32_t
 murmurhash3(
       const void *key, 
       size_t len, 
       uint32_t seed
       )
+//STOP_FUNC_DECL
 {
   const uint8_t *data = key;
   const size_t orig_len = len;

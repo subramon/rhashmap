@@ -1,5 +1,6 @@
 local gen_code = require "Q/UTILS/lua/gen_code"
 local qconsts  = require 'Q/UTILS/lua/q_consts'
+local extract_func_decl  = require 'Q/UTILS/lua/extract_func_decl'
 local plpath   = require "pl.path"
 local srcdir   = "../xgen_src/"
 local incdir   = "../xgen_inc/"
@@ -79,7 +80,7 @@ local function libgen(
     subs.val_spec = "VAL_REC_TYPE *vals; "
   end
   gen_code.doth(subs, incdir)
-  -- 2) hmap_mk_hash.h
+  -- 2) hmap_mk_hash.[c, h]
   local subs = {}
   subs.fn = "hmap_mk_hash"
   subs.tmpl = "hmap_mk_hash.tmpl.lua"
@@ -87,12 +88,40 @@ local function libgen(
   subs.ckeytype = "u" .. assert(qconsts.qtypes[keytype].ctype)
   gen_code.doth(subs, incdir)
   gen_code.dotc(subs, srcdir)
+  -- 2) hmap_create.[c, h]
+  local subs = {}
+  subs.fn = "hmap_create"
+  subs.tmpl = "hmap_create.tmpl.lua"
+  -- notice that key is unsigned
+  subs.ckeytype = "u" .. assert(qconsts.qtypes[keytype].ctype)
+  if ( num_vals == 1 ) then 
+    local cvaltype = assert(qconsts.qtypes[aggvalstype[i]].ctype)
+    subs.aggvaltype = cvaltype
+  else
+    subs.aggvaltype = "VAL_REC_TYPE";
+  end
+  gen_code.doth(subs, incdir)
+  gen_code.dotc(subs, srcdir)
+  -- identify files from src/ folder and generate .h files for them
+  local S = {}
+  S[#S+1] = "../src/hmap_mk_loc.c"
+  S[#S+1] = "../src/hmap_mk_tid.c"
+  S[#S+1] = "../src/validate_psl_p.c"
+  S[#S+1] = "../src/calc_new_size.c"
+  S[#S+1] = "../src/murmurhash.c"
+  for k, v in ipairs(S) do 
+    extract_func_decl(v, incdir)
+  end
+
   -- compile code 
   local incs = "-I../inc/ -I../xgen_inc/"
   local X = {}
   X[#X+1] = " "
-  X[#X+1] = "../src/murmurhash.c"
+  for k, v in ipairs(S) do 
+    X[#X+1] = S[k]
+  end
   X[#X+1] = srcdir .. "_hmap_mk_hash.c" 
+  X[#X+1] = srcdir .. "_hmap_create.c" 
   X[#X+1] = " "
   local command = "gcc -shared " .. qconsts.QC_FLAGS .. incs .. 
     " -o " .. libname 

@@ -66,7 +66,7 @@ fls(int x)
 }
 #endif
 
-uint32_t	murmurhash3(const void *, size_t, uint32_t) __dso_hidden;
+// DELETED uint32_t	murmurhash3(const void *, size_t, uint32_t) __dso_hidden;
 uint32_t	halfsiphash(const uint8_t *, const size_t, const uint64_t) __dso_hidden;
 
 #endif
