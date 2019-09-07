@@ -15,22 +15,22 @@ local function libgen(
   local keytype = assert(T.keytype)
   assert( ( keytype == "I4" ) or ( keytype == "I8" ) ) 
 
-  local tgt = assert(T.tgt)
-  assert(type(tgt) == "table")
-  local num_vals = #tgt
+  local vals = assert(T.vals)
+  assert(type(vals) == "table")
+  local num_vals = #vals
   invalstype  = {}
   aggvalstype = {}
   aggstype    = {}
   assert( ( num_vals >= 1 ) and ( num_vals <= 4 ) ) 
   -- 4 is just an arbitrary but hopefully reasonable limit
 
-  for i, v in pairs(tgt) do
-    local invaltype  = assert(v.invaltype)
+  for i, v in pairs(vals) do
+    local invaltype  = assert(v.read_as)
     assert( ( invaltype == "I1" ) or ( invaltype == "I2" )  or
             ( invaltype == "I4" ) or ( invaltype == "I8" )  or
             ( invaltype == "F4" ) or ( invaltype == "F8" ) ) 
-    local aggtype    = assert(v.aggtype)
-    local aggvaltype = v.aggvaltype -- note this is optional
+    local aggtype    = assert(v.agg_type)
+    local aggvaltype = v.agg_as -- note this is optional
     if ( aggvaltype ) then 
       assert( ( aggvaltype == "I1" ) or ( aggvaltype == "I2" )  or
             ( aggvaltype == "I4" ) or ( aggvaltype == "I8" )  or

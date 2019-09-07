@@ -35,6 +35,9 @@ main(void)
   for ( int i = 0; i < 1000000; i++ ) { 
     uint32_t a = random();
     uint32_t b = random();
+    a = 85295655468683;
+    b = 6;
+
     status = test_fastdiv(a, b); cBYE(status);
   }
   fprintf(stdout, "SUCCESS\n");
