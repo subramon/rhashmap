@@ -2,7 +2,7 @@ return require 'Q/UTILS/lua/code_gen'   {
 declaration = [[
 #include "hmap_common.h"
 #include "_hmap_types.h"
-#include "_hmap_insert.h"
+#include "_hmap_find_loc.h"
 extern int
 ${fn}(
     hmap_t *hmap, 
@@ -28,11 +28,7 @@ ${fn}(
   ${ckeytype} *newkeys = NULL;
   ${caggvaltype} *newvals = NULL;
   uint16_t    *newpsls = NULL;
-#ifdef DEBUG
-  uint32_t *newhashes  = NULL;
-#endif
 
-  int num_probes      = *ptr_num_probes;
 
   // some obvious logical checks
   if ( ptr_hmap == NULL ) { go_BYE(-1); }
@@ -42,30 +38,18 @@ ${fn}(
   if ( newsize <= (ptr_hmap->nitems/HIGH_WATER_MARK) ) { go_BYE(-1); }
 
   free_if_non_null(ptr_hmap->psls);
-#ifdef DEBUG
-  free_if_non_null(ptr_hmap->hashes);
-#endif
 
   // allocate new storage
   newkeys = calloc(newsize, sizeof(${ckeytype}));
   newvals = calloc(newsize, sizeof(${caggvaltype}));
   newpsls   = calloc(newsize, sizeof(uint16_t));
-#ifdef DEBUG
-  newhashes = calloc(newsize, sizeof(uint32_t));
-#endif
 
-#ifdef DEBUG
-  if ( ( newhashes == NULL ) { go_BYE(-1); }
-#endif
   if ( ( newkeys == NULL ) || ( newvals == NULL ) || 
        ( newpsls == NULL ) ) { go_BYE(-1); }
 
   ptr_hmap->vals    = newvals;
   ptr_hmap->keys    = newkeys;
   ptr_hmap->psls    = newpsls;
-#ifdef DEBUG
-  ptr_hmap->hashes  = newhashes;
-#endif
   ptr_hmap->size    = newsize;
   ptr_hmap->nitems  = 0;
 
@@ -74,16 +58,20 @@ ${fn}(
   ptr_hmap->hashkey ^= random() | (random() << 32);
 
   for ( uint32_t i = 0; i < oldsize; i++) {
+    int num_probes = 0;
+    uint32_t loc = 0;
     ${ckeytype} key = ptr_hmap->keys[i];
     if ( key == 0 ) { continue; }  // skip empty slot 
     ${caggvaltype} val = ptr_hmap->vals[i];
-    ${caggvaltype}  oldval;  // needed only to match function signature
-    status = hmap_insert( ptr_hmap, key, val, &oldval, &num_probes);
+    status = hmap_find_loc( ptr_hmap, key, &loc, &num_probes);
     cBYE(status);
+    ptr_hmap->keys[loc] = key;
+    ptr_hmap->vals[loc] = val;
+    // TODO ptr_hmap->psls[loc] = psl;
+    *ptr_num_probes += num_probes;
   }
   free_if_non_null(oldkeys);
   free_if_non_null(oldvals);
-  *ptr_num_probes = num_probes;
 BYE:
   return status;
 }

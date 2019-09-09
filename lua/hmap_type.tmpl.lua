@@ -14,9 +14,6 @@ typedef struct {
   uint64_t divinfo;
   ${ckeytype}  *keys; 
   ${caggvaltype} *vals;
-#ifdef DEBUG
-  uint32_t *hashes;
-#endif
   uint16_t *psls; // TODO P4: Confirm this is enough
   uint64_t hashkey;
   uint32_t minsize;

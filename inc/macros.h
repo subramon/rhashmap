@@ -1,5 +1,5 @@
-#ifndef __Q_MACROS_H
-#define __Q_MACROS_H
+#ifndef __MACROS_H
+#define __MACROS_H
 #define WHEREAMI { fprintf(stderr, "Line %3d of File %s \n", __LINE__, __FILE__);  }
 /*-------------------------------------------------------*/
 #define go_BYE(x) { WHEREAMI; status = x ; goto BYE; }

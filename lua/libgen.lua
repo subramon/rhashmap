@@ -5,6 +5,20 @@ local plpath   = require "pl.path"
 local srcdir   = "../xgen_src/"
 local incdir   = "../xgen_inc/"
 
+local function create_dot_o(
+  X
+  )
+  local incs = " -I../inc/ -I../xgen_inc/ "
+  assert(type(X) == "table")
+  for k, v in pairs(X) do 
+    local command = "gcc -c "  .. qconsts.QC_FLAGS .. incs .. v
+    status = os.execute(command)
+    if ( status ~= 0 ) then print(command) end 
+    assert(status == 0)
+  end
+end
+
+
 local function libgen(
   T,
   libname
@@ -42,6 +56,8 @@ local function libgen(
       assert(not aggvaltype) -- should not be specified
       aggvaltype = invaltype 
     elseif ( aggtype == "cnt" ) then 
+      if ( not aggvaltype ) then aggvaltype = invaltype end
+      print(invaltype, aggvaltype)
       assert( ( aggvaltype == "I4" ) or ( aggvaltype == "I8" ) ) 
     elseif ( aggtype == "sum" ) then 
       -- all is well 
@@ -67,6 +83,7 @@ local function libgen(
 
     subs.agg_val_rec = " ";
     subs.in_val_rec = " ";
+
   else
     subs.caggvaltype = "AGG_VAL_REC_TYPE";
     subs.cinvaltype  = "IN_VAL_REC_TYPE";
@@ -106,10 +123,11 @@ local function libgen(
   subs.fn = "hmap_resize"
   subs.tmpl = "hmap_resize.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 5) hmap_insert.[c, h]
-  subs.fn = "hmap_insert"
-  subs.tmpl = "hmap_insert.tmpl.lua"
+  -- 5) hmap_find_loc.[c, h]
+  subs.fn = "hmap_find_loc"
+  subs.tmpl = "hmap_find_loc.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
+  --[[
   -- 6) hmap_get.[c, h]
   subs.fn = "hmap_get"
   subs.tmpl = "hmap_get.tmpl.lua"
@@ -118,6 +136,7 @@ local function libgen(
   subs.fn = "hmap_put"
   subs.tmpl = "hmap_put.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
+  --]]
   -- identify files from src/ folder and generate .h files for them
   local S = {}
   S[#S+1] = "../src/hmap_mk_loc.c"
@@ -131,24 +150,22 @@ local function libgen(
   end
 
   -- compile code 
-  local incs = "-I../inc/ -I../xgen_inc/"
   local X = {}
-  X[#X+1] = " "
   for k, v in ipairs(S) do 
     X[#X+1] = S[k]
   end
   X[#X+1] = srcdir .. "_hmap_mk_hash.c" 
   X[#X+1] = srcdir .. "_hmap_create.c" 
   X[#X+1] = srcdir .. "_hmap_resize.c" 
-  X[#X+1] = srcdir .. "_hmap_get.c" 
-  X[#X+1] = srcdir .. "_hmap_put.c" 
+  X[#X+1] = srcdir .. "_hmap_find_loc.c" 
+  -- X[#X+1] = srcdir .. "_hmap_get.c" 
+  -- X[#X+1] = srcdir .. "_hmap_put.c" 
 --  X[#X+1] = srcdir .. "_hmap_del.c" 
+  create_dot_o(X)
   X[#X+1] = " "
-  local command = "gcc -shared " .. qconsts.QC_FLAGS .. incs .. 
-    " -o " .. libname 
-    .. table.concat(X, " ") 
-  print(command)
+  local command = "gcc -shared *.o  -o " .. libname 
   os.execute(command)
+  assert(status == 0)
 
 end
 return libgen

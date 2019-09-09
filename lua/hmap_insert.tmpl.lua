@@ -8,7 +8,7 @@ extern int
 ${fn}(
     hmap_t *ptr_hmap, 
     ${ckeytype} key,
-    ${caggvaltype} val,
+    void *ptr_val,
     ${caggvaltype} *ptr_oldval,
     int *ptr_num_probes
     );
@@ -20,7 +20,7 @@ int
 ${fn}(
     hmap_t *ptr_hmap, 
     ${ckeytype} key,
-    ${caggvaltype} val,
+    void * ptr_val,
     ${caggvaltype} *ptr_oldval,
     int *ptr_num_probes
     )
@@ -28,8 +28,6 @@ ${fn}(
   int status = 0;
   const uint32_t hash = murmurhash3(
     &key, sizeof(${ckeytype}), ptr_hmap->hashkey);
-  bkt_type *ptr_bucket, entry;
-  uint32_t i;
   int num_probes = *ptr_num_probes;
   register uint32_t size    = ptr_hmap->size;
   register uint64_t divinfo = ptr_hmap->divinfo;
@@ -40,13 +38,7 @@ ${fn}(
   // Note that we do NOT throw an error
   if ( key == 0 ) { return status; }
 
-  // Setup the bucket entry.
-  entry.key   = key;
-#ifdef DEBUG
-  entry.hash  = hash;
-#endif
-  entry.psl   = 0;
-  *ptr_oldval = 0;
+  uint16_t psl = 0; // default psl of this insert
 
   /*
    * From the paper: "when inserting, if a record probes a location
@@ -58,37 +50,43 @@ ${fn}(
    * being inserted is greater than PSL of the element in the bucket,
    * then swap them and continue.
    */
-  i = fast_rem32(hash, ptr_hmap->size, ptr_hmap->divinfo);
-  uint32_t where_found;
+  register uint32_t i = fast_rem32(hash, ptr_hmap->size, ptr_hmap->divinfo);
   for ( ; ; ) { 
-    ptr_bucket = &(ptr_hmap->buckets[i]);
     // If there is a key in the bucket.
-    if ( ptr_bucket->key ) {
+    if ( keys[i] != 0 ) { 
 #ifdef DEBUG
       ASSERT(validate_psl_p(hmap, ptr_bucket, i));
       if ( (bucket->hash == hash) && (ptr_bucket->key == key) ) 
 #else
-      if ( ptr_bucket->key == key ) 
+      if ( keys[i] == key ) 
 #endif
       {
         where_found = i;
         key_updated = true;
-        // do the prescribed update 
-        *ptr_oldval = vals[i];
+        // START: do the prescribed update 
+        ptr_hmap->keys[i] = key;
+        ptr_hmap->hashes[i] = hash;
         ${code_for_update};
+        
+        // STOP: do the prescribed update 
         break;
       }
       // We found a "rich" bucket.  Capture its location.
-      if (entry.psl > ptr_bucket->psl) {
-        bkt_type tmp;
-        /*
-         * Place our key-value pair by swapping the "rich"
-         * bucket with our entry.  Copy the structures.
-         */
-        tmp = entry;
-        entry = *ptr_bucket;
-        *ptr_bucket = tmp;
-        // TODO Set val 
+      if ( ptr_hmap->psls[i] > psl ) { 
+         // Place our key-value pair by swapping the "rich"
+         // bucket with our entry.  Copy the structures.
+        uint16_t swap_psl  = ptr_hmap->psls[i];
+        uint16_t swap_hash = ptr_hmap->hashes[i];
+        uint16_t swap_key  = ptr_hmap->keys[i];
+        // TODO swap_val = XXXX;
+        ptr_hmap->psls[i]   = psl;
+        ptr_hmap->hashes[i] = hash;
+        ptr_hmap->keys[i]  = key;
+        // TODO handle val as well
+        psl = swap_psl;
+        hash = swap_hash;
+        key  = swap_key;
+        // TODO handle val as well
       }
       entry.psl++;
       /* Continue to the next bucket. */
@@ -104,8 +102,10 @@ ${fn}(
   }
   if ( !key_updated ) {
     // Found a free bucket: insert the entry.
-    *ptr_bucket = entry; // copy
-    vals[where_found] = val; 
+    ptr_hmap->psls[i]   = psl;
+    ptr_hmap->hashes[i] = hash;
+    ptr_hmap->keys[i]   = key;
+    // TODO handle val as well
     ptr_hmap->nitems++;
   }
 

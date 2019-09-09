@@ -17,7 +17,6 @@ definition = [[
  * hmap_create: construct a new hash table.
  * Number of buckets is larger of input value and pre-defined value
  */
-//START_FUNC_DECL
 hmap_t *
 ${fn}(
       size_t minsize
