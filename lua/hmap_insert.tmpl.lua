@@ -9,6 +9,8 @@ ${fn}(
     hmap_t *ptr_hmap, 
     ${ckeytype} key,
     ${cvaltype} val,
+    ${cvaltype} *ptr_old_val,
+    bool *ptr_updated,
     uint64_t *ptr_num_probes
     );
 ]],
@@ -20,6 +22,8 @@ ${fn}(
     hmap_t *ptr_hmap, 
     ${ckeytype} key,
     ${cvaltype} val,
+    ${cvaltype} *ptr_old_val,
+    bool *ptr_updated,
     uint64_t *ptr_num_probes
     )
 {
@@ -30,6 +34,7 @@ ${fn}(
   register uint64_t num_probes = *ptr_num_probes;
   register uint32_t size = ptr_hmap->size;
   uint64_t divinfo = ptr_hmap->divinfo;
+  *ptr_updated = false;
 
   // 0 is not a valid value for a key, TODO P3 Document this better
   // Note that we do NOT throw an error
@@ -55,7 +60,13 @@ ${fn}(
     if ( num_probes >= size ) { go_BYE(-1); }
     ${ckeytype} this_key = keys[probe_loc];
     if ( key != 0 ) { // If there is a key in the bucket.
-      if ( this_key == key ) { go_BYE(-1); } // this is pure insert function
+      if ( this_key == key ) { 
+        *ptr_old_val = vals[probe_loc];
+        ${code_for_update};
+        *ptr_updated = true;
+        break;
+      }
+      //-----------------------
       uint16_t this_psl = ptr_hmap->psls[probe_loc];
       ${cvaltype} this_val = ptr_hmap->vals[probe_loc];
       // We found a "rich" bucket.  Capture its location.

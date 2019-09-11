@@ -82,6 +82,7 @@ local function libgen(
 
     subs.agg_val_rec = " ";
     subs.in_val_rec = " ";
+    subs.code_for_promote = "val = (" .. subs.cvaltype .. ") inval; "
 
   else
     subs.cvaltype = "VAL_REC_TYPE";
@@ -105,6 +106,13 @@ local function libgen(
     X[#X+1] = " } VAL_REC_TYPE ; ";
     subs.val_rec = table.concat(X, "\n");
 
+    local X = {} 
+    for i = 1, num_vals do
+      local cvaltype = assert(qconsts.qtypes[valstype[i]].ctype)
+      X[#X+1] = "  val.val_" .. tostring(i) .. " = (" .. cvaltype .. ") inval.val_" .. tostring(i) .. ";"
+    end
+
+    subs.code_for_promote = table.concat(X, "\n");
   end
   subs.tmpl = "hmap_type.tmpl.lua"
   subs.fn = "hmap_types"

@@ -11,6 +11,7 @@ hmap_put(
     ${ckeytype}  key, 
     ${cinvaltype}  val, 
     ${cvaltype} *ptr_oldval,
+    bool *ptr_updated,
     uint64_t *ptr_num_probes
     );
     ]],
@@ -28,6 +29,7 @@ hmap_put(
     ${ckeytype}  key, 
     ${cinvaltype}  inval, 
     ${cvaltype} *ptr_oldval,
+    bool *ptr_updated,
     uint64_t *ptr_num_probes
     )
 {
@@ -46,7 +48,7 @@ hmap_put(
   }
   // convert from inval to val 
   ${code_for_promote};
-  status = hmap_insert(ptr_hmap, key, val, ptr_oldval, &num_probes);
+  status = hmap_insert(ptr_hmap, key, val, ptr_oldval, ptr_updated, &num_probes);
   cBYE(status);
   *ptr_num_probes += num_probes;
 BYE:

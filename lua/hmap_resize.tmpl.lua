@@ -53,8 +53,11 @@ ${fn}(
   ptr_hmap->hashkey ^= random() | (random() << 32);
 
   for ( uint32_t i = 0; i < oldsize; i++) {
+    bool updated = false;
     if ( keys[i] == 0 ) { continue; } // skip empty slots
-    hmap_insert(ptr_hmap, keys[i], vals[i], &num_probes);
+    ${cvaltype} oldval; // just for function signature match 
+    hmap_insert(ptr_hmap, keys[i], vals[i], &oldval, &updated, &num_probes);
+    if ( updated ) { go_BYE(-1); }
   }
 #ifdef DEBUG
   free_if_non_null(hashes);
