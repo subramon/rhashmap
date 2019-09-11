@@ -5,7 +5,7 @@ declaration = [[
 extern int ${fn}(
     hmap_t *ptr_hmap, 
     ${ckeytype}  key,
-    ${caggvaltype} *ptr_val,
+    ${cvaltype} *ptr_val,
     bool *ptr_is_found
     );
     ]],
@@ -14,7 +14,7 @@ definition = [[
 extern int ${fn}(
     hmap_t *ptr_hmap, 
     ${ckeytype}  key,
-    ${caggvaltype} *ptr_val,
+    ${cvaltype} *ptr_val,
     bool *ptr_is_found
 )
 {
@@ -32,10 +32,10 @@ extern int ${fn}(
   // loc is location where we look for key 
   uint32_t loc = fast_rem32(hash, ptr_hmap->size, ptr_hmap->divinfo);
   *ptr_is_found = false;
-  memset(ptr_val, '\0', sizeof(${caggvaltype}));
+  memset(ptr_val, '\0', sizeof(${cvaltype}));
 
   ${ckeytype}    *keys = ptr_hmap->keys;
-  ${caggvaltype} *vals = ptr_hmap->vals;
+  ${cvaltype} *vals = ptr_hmap->vals;
   uint16_t       *psls = ptr_hmap->psls;
 #ifdef DEBUG
   uint32_t     *hashes = ptr_hmap->hashes;

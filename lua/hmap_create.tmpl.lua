@@ -23,40 +23,34 @@ ${fn}(
         )
 {
   int status = 0;
-  hmap_t *hmap = NULL;
+  hmap_t *ptr_hmap = NULL;
 
-  hmap->size = hmap->minsize = MAX(minsize, HASH_INIT_SIZE);
+  ptr_hmap = calloc(1, sizeof(hmap_t));
+  return_if_malloc_failed(ptr_hmap);
 
-  hmap = calloc(1, sizeof(hmap_t));
-  return_if_malloc_failed(hmap);
+  ptr_hmap->size = ptr_hmap->minsize = MAX(minsize, HASH_INIT_SIZE);
 
-  hmap->psls = calloc(hmap->size, sizeof(uint16_t)); 
-  return_if_malloc_failed(hmap->psls);
 
-  hmap->vals = calloc(hmap->size, sizeof(${caggvaltype}));
-  return_if_malloc_failed(hmap->vals);
-#ifdef DEBUG
-  hmap->hashes = calloc(hmap->size, sizeof(uint32_t)); 
-  return_if_malloc_failed(hmap->hashes);
-#endif
-  hmap->keys = calloc(hmap->size, sizeof(${ckeytype}));
-  return_if_malloc_failed(hmap->keys);
+  ptr_hmap->psls = calloc(ptr_hmap->size, sizeof(uint16_t)); 
+  return_if_malloc_failed(ptr_hmap->psls);
+
+  ptr_hmap->vals = calloc(ptr_hmap->size, sizeof(${cvaltype}));
+  return_if_malloc_failed(ptr_hmap->vals);
+  ptr_hmap->keys = calloc(ptr_hmap->size, sizeof(${ckeytype}));
+  return_if_malloc_failed(ptr_hmap->keys);
 
 BYE:
   if ( status != 0 ) { 
-    if ( hmap != NULL ) { 
-      free_if_non_null(hmap->keys);
-      free_if_non_null(hmap->vals);
-#ifdef DEBUG
-      free_if_non_null(hmap->hashes);
-#endif
-      free_if_non_null(hmap->psls);
+    if ( ptr_hmap != NULL ) { 
+      free_if_non_null(ptr_hmap->keys);
+      free_if_non_null(ptr_hmap->vals);
+      free_if_non_null(ptr_hmap->psls);
     }
-    free_if_non_null(hmap);
+    free_if_non_null(ptr_hmap);
     return NULL; 
   }
   else  {
-    return hmap;
+    return ptr_hmap;
   }
 }
 ]]

@@ -2,12 +2,12 @@ return require 'Q/UTILS/lua/code_gen'   {
 declaration = [[
 #include "hmap_common.h"
 #include "_hmap_types.h"
-#include "_hmap_find_loc.h"
+#include "_hmap_insert.h"
 extern int
 ${fn}(
     hmap_t *hmap, 
     size_t newsize,
-    int *ptr_num_probes
+    uint64_t *ptr_num_probes
     );
 ]],
 definition = [[
@@ -17,39 +17,34 @@ int
 ${fn}(
     hmap_t *ptr_hmap, 
     size_t newsize,
-    int *ptr_num_probes
+    uint64_t *ptr_num_probes
     )
 {
   int status = 0;
-  ${ckeytype} *oldkeys  = ptr_hmap->keys;
-  ${caggvaltype} *oldvals  = ptr_hmap->vals;
+  if ( ptr_hmap == NULL ) { go_BYE(-1); }
   const size_t oldsize = ptr_hmap->size;
-
-  ${ckeytype} *newkeys = NULL;
-  ${caggvaltype} *newvals = NULL;
-  uint16_t    *newpsls = NULL;
-
+  const size_t nitems  = ptr_hmap->nitems;
+#ifdef DEBUG
+  uint32_t *newhashes = NULL, *hashes = ptr_hmap->hashes;
+#endif
+  ${cvaltype} *newvals = NULL, *vals = ptr_hmap->vals;
+  ${ckeytype} *newkeys = NULL, *keys = ptr_hmap->keys;
+  uint16_t *newpsls = NULL, *psls = ptr_hmap->psls;
+  uint64_t num_probes = *ptr_num_probes;
 
   // some obvious logical checks
-  if ( ptr_hmap == NULL ) { go_BYE(-1); }
-  if ( ( oldkeys == NULL ) && ( oldsize != 0 ) ) { go_BYE(-1); }
-  if ( ( oldvals == NULL ) && ( oldsize != 0 ) ) { go_BYE(-1); }
   if ( ( newsize <= 0 ) || ( newsize >= UINT_MAX ) )  { go_BYE(-1); }
-  if ( newsize <= (ptr_hmap->nitems/HIGH_WATER_MARK) ) { go_BYE(-1); }
+  if ( newsize < (uint32_t)(HIGH_WATER_MARK * (double)nitems) ) { 
+    go_BYE(-1); 
+  }
 
-  free_if_non_null(ptr_hmap->psls);
+#ifdef DEBUG
+  ptr_hmap->hashes = newhashes = calloc(sizeof(uint32_t), newsize);
+#endif
+  ptr_hmap->vals = newvals = calloc(sizeof(${cvaltype}), newsize);
+  ptr_hmap->keys = newkeys = calloc(sizeof(${ckeytype}), newsize);
+  ptr_hmap->psls = newpsls = calloc(sizeof(uint16_t), newsize);
 
-  // allocate new storage
-  newkeys = calloc(newsize, sizeof(${ckeytype}));
-  newvals = calloc(newsize, sizeof(${caggvaltype}));
-  newpsls   = calloc(newsize, sizeof(uint16_t));
-
-  if ( ( newkeys == NULL ) || ( newvals == NULL ) || 
-       ( newpsls == NULL ) ) { go_BYE(-1); }
-
-  ptr_hmap->vals    = newvals;
-  ptr_hmap->keys    = newkeys;
-  ptr_hmap->psls    = newpsls;
   ptr_hmap->size    = newsize;
   ptr_hmap->nitems  = 0;
 
@@ -58,20 +53,17 @@ ${fn}(
   ptr_hmap->hashkey ^= random() | (random() << 32);
 
   for ( uint32_t i = 0; i < oldsize; i++) {
-    int num_probes = 0;
-    uint32_t loc = 0;
-    ${ckeytype} key = ptr_hmap->keys[i];
-    if ( key == 0 ) { continue; }  // skip empty slot 
-    ${caggvaltype} val = ptr_hmap->vals[i];
-    status = hmap_find_loc( ptr_hmap, key, &loc, &num_probes);
-    cBYE(status);
-    ptr_hmap->keys[loc] = key;
-    ptr_hmap->vals[loc] = val;
-    // TODO ptr_hmap->psls[loc] = psl;
-    *ptr_num_probes += num_probes;
+    if ( keys[i] == 0 ) { continue; } // skip empty slots
+    hmap_insert(ptr_hmap, keys[i], vals[i], &num_probes);
   }
-  free_if_non_null(oldkeys);
-  free_if_non_null(oldvals);
+#ifdef DEBUG
+  free_if_non_null(hashes);
+#endif
+  free_if_non_null(keys);
+  free_if_non_null(vals);
+  free_if_non_null(psls);
+
+  *ptr_num_probes += num_probes;
 BYE:
   return status;
 }

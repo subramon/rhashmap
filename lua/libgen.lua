@@ -33,7 +33,7 @@ local function libgen(
   assert(type(vals) == "table")
   local num_vals = #vals
   invalstype  = {}
-  aggvalstype = {}
+  valstype = {}
   aggstype    = {}
   assert( ( num_vals >= 1 ) and ( num_vals <= 4 ) ) 
   -- 4 is just an arbitrary but hopefully reasonable limit
@@ -44,31 +44,30 @@ local function libgen(
             ( invaltype == "I4" ) or ( invaltype == "I8" )  or
             ( invaltype == "F4" ) or ( invaltype == "F8" ) ) 
     local aggtype    = assert(v.agg_type)
-    local aggvaltype = v.agg_as -- note this is optional
-    if ( aggvaltype ) then 
-      assert( ( aggvaltype == "I1" ) or ( aggvaltype == "I2" )  or
-            ( aggvaltype == "I4" ) or ( aggvaltype == "I8" )  or
-            ( aggvaltype == "F4" ) or ( aggvaltype == "F8" ) ) 
+    local valtype = v.agg_as -- note this is optional
+    if ( valtype ) then 
+      assert( ( valtype == "I1" ) or ( valtype == "I2" )  or
+            ( valtype == "I4" ) or ( valtype == "I8" )  or
+            ( valtype == "F4" ) or ( valtype == "F8" ) ) 
     end
     --====================
     if ( ( aggtype == "set" ) or ( aggtype == "min" ) or
          ( aggtype == "max" ) ) then 
-      assert(not aggvaltype) -- should not be specified
-      aggvaltype = invaltype 
+      assert(not valtype) -- should not be specified
+      valtype = invaltype 
     elseif ( aggtype == "cnt" ) then 
-      if ( not aggvaltype ) then aggvaltype = invaltype end
-      print(invaltype, aggvaltype)
-      assert( ( aggvaltype == "I4" ) or ( aggvaltype == "I8" ) ) 
+      if ( not valtype ) then valtype = "I8" end
+      assert( ( valtype == "I4" ) or ( valtype == "I8" ) ) 
     elseif ( aggtype == "sum" ) then 
-      -- all is well 
+      -- no checks in this case
     else
       assert(nil, "invalid aggtype")
     end
-    if ( not aggvaltype ) then aggvaltype = invaltype end
+    if ( not valtype ) then valtype = invaltype end
     --====================
-    invalstype[i]  = invaltype 
-    aggvalstype[i] = aggvaltype
-    aggstype[i]    = aggtype
+    invalstype[i] = invaltype 
+    valstype[i]   = valtype
+    aggstype[i]   = aggtype
     --====================
   end
   -- START generating code
@@ -79,13 +78,13 @@ local function libgen(
   subs.ckeytype = "u" .. assert(qconsts.qtypes[keytype].ctype)
   if ( num_vals == 1 ) then 
     subs.cinvaltype  = assert(qconsts.qtypes[invalstype[1]].ctype) 
-    subs.caggvaltype = assert(qconsts.qtypes[aggvalstype[1]].ctype)
+    subs.cvaltype = assert(qconsts.qtypes[valstype[1]].ctype)
 
     subs.agg_val_rec = " ";
     subs.in_val_rec = " ";
 
   else
-    subs.caggvaltype = "AGG_VAL_REC_TYPE";
+    subs.cvaltype = "VAL_REC_TYPE";
     subs.cinvaltype  = "IN_VAL_REC_TYPE";
 
     local X = {}
@@ -98,13 +97,13 @@ local function libgen(
     subs.in_val_rec = table.concat(X, "\n");
 
     local X = {}
-    X[#X+1] = "typedef struct _agg_val_rec_type { ";
+    X[#X+1] = "typedef struct _val_rec_type { ";
     for i = 1, num_vals do 
-      local cvaltype = assert(qconsts.qtypes[aggvalstype[i]].ctype)
+      local cvaltype = assert(qconsts.qtypes[valstype[i]].ctype)
       X[#X+1] = "  " .. cvaltype .. " val_" .. tostring(i) .. ";" ;
     end
-    X[#X+1] = " } AGG_VAL_REC_TYPE ; ";
-    subs.agg_val_rec = table.concat(X, "\n");
+    X[#X+1] = " } VAL_REC_TYPE ; ";
+    subs.val_rec = table.concat(X, "\n");
 
   end
   subs.tmpl = "hmap_type.tmpl.lua"
@@ -124,19 +123,19 @@ local function libgen(
   subs.tmpl = "hmap_resize.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
   -- 5) hmap_find_loc.[c, h]
-  subs.fn = "hmap_find_loc"
-  subs.tmpl = "hmap_find_loc.tmpl.lua"
+  subs.fn = "hmap_insert"
+  subs.tmpl = "hmap_insert.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
   --[[
   -- 6) hmap_get.[c, h]
   subs.fn = "hmap_get"
   subs.tmpl = "hmap_get.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 7) hmap_get.[c, h]
+  --]]
+  -- 7) hmap_put.[c, h]
   subs.fn = "hmap_put"
   subs.tmpl = "hmap_put.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  --]]
   -- identify files from src/ folder and generate .h files for them
   local S = {}
   S[#S+1] = "../src/hmap_mk_loc.c"
@@ -157,9 +156,9 @@ local function libgen(
   X[#X+1] = srcdir .. "_hmap_mk_hash.c" 
   X[#X+1] = srcdir .. "_hmap_create.c" 
   X[#X+1] = srcdir .. "_hmap_resize.c" 
-  X[#X+1] = srcdir .. "_hmap_find_loc.c" 
+  X[#X+1] = srcdir .. "_hmap_insert.c" 
+  X[#X+1] = srcdir .. "_hmap_put.c" 
   -- X[#X+1] = srcdir .. "_hmap_get.c" 
-  -- X[#X+1] = srcdir .. "_hmap_put.c" 
 --  X[#X+1] = srcdir .. "_hmap_del.c" 
   create_dot_o(X)
   X[#X+1] = " "

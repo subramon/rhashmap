@@ -7,11 +7,11 @@ declaration = [[
 #include "_hmap_insert.h"
 extern int
 hmap_put(
-    hmap_t *hmap, 
+    hmap_t *ptr_hmap, 
     ${ckeytype}  key, 
     ${cinvaltype}  val, 
-    ${caggvaltype} *ptr_oldval,
-    int *ptr_num_probes
+    ${cvaltype} *ptr_oldval,
+    uint64_t *ptr_num_probes
     );
     ]],
 definition = [[
@@ -24,23 +24,31 @@ definition = [[
  #include "_${fn}.h"
 int
 hmap_put(
-    hmap_t *hmap, 
+    hmap_t *ptr_hmap, 
     ${ckeytype}  key, 
-    ${cinvaltype}  val, 
-    ${caggvaltype} *ptr_oldval,
-    int *ptr_num_probes
+    ${cinvaltype}  inval, 
+    ${cvaltype} *ptr_oldval,
+    uint64_t *ptr_num_probes
     )
 {
   int status = 0;
-  uint32_t newsize; bool resize, decreasing = false;
+  uint32_t newsize; bool resize = false, decreasing = false;
+  ${cvaltype} val;
+  uint64_t num_probes = 0;
 
-  status = calc_new_size(hmap->nitems, hmap->minsize, hmap->size, 
-      decreasing, &newsize, &resize);
-  if ( resize ) { 
-    status = hmap_resize(hmap, newsize, ptr_num_probes); cBYE(status);
+  if ( ptr_hmap->nitems > (double)ptr_hmap->size * HIGH_WATER_MARK ) {
+    status = calc_new_size(ptr_hmap->nitems, ptr_hmap->minsize, 
+    ptr_hmap->size, decreasing, &newsize, &resize);
+    cBYE(status);
   }
-  status = hmap_insert(hmap, key, val, ptr_oldval, ptr_num_probes);
+  if ( resize ) { 
+    status = hmap_resize(ptr_hmap, newsize, ptr_num_probes); cBYE(status);
+  }
+  // convert from inval to val 
+  ${code_for_promote};
+  status = hmap_insert(ptr_hmap, key, val, ptr_oldval, &num_probes);
   cBYE(status);
+  *ptr_num_probes += num_probes;
 BYE:
   return status;
 }

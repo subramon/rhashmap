@@ -21,24 +21,22 @@ calc_new_size(
 {
   int status = 0;
   *ptr_resize = false;
-  *ptr_newsize = 0;
-  uint32_t threshold;
+  uint64_t newsize = 0;
+  uint64_t threshold;
   if ( decreasing ) { 
     /*
      * If the load factor is less than threshold, then shrink by
      * halving the size, but not more than the minimum size.
      */
-    threshold = (uint32_t)(LOW_WATER_MARK * size);
+    threshold = (uint64_t)(LOW_WATER_MARK * size);
     if ( ( nitems > minsize ) && ( nitems < threshold ) ) {
       *ptr_resize = true;
-      *ptr_newsize = MAX(size >> 1, minsize);
+      newsize = MAX(size >> 1, minsize);
     }
   }
   else {
-    /*
-     * If the load factor is more than the threshold, then resize.
-     */
-    threshold = (uint32_t)(HIGH_WATER_MARK * (float)size);
+    // If the load factor is more than the threshold, then resize.
+    threshold = (uint64_t)(HIGH_WATER_MARK * (double)size);
     // TODO P4 Clean up the following code 
     if ( nitems > threshold ) { 
       *ptr_resize = true;
@@ -47,12 +45,14 @@ calc_new_size(
          * Grow the hash table by doubling its size, but with
          * a limit of MAX_GROWTH_STEP.
          */
-       // TODO: P4 Worry about overflow in addition below
-        const size_t grow_limit = size + MAX_GROWTH_STEP;
-        *ptr_newsize = MIN(size << 1, grow_limit);
-        threshold = (uint32_t)(0.85 * *ptr_newsize);
+        uint64_t grow_limit = size + MAX_GROWTH_STEP;
+        newsize = MIN(size << 1, grow_limit);
+        threshold = (uint64_t)(0.85 * (double)newsize);
       }
     }
   }
+  if ( newsize > UINT_MAX ) { go_BYE(-1); }
+  *ptr_newsize = newsize;
+BYE:
   return status;
 }
