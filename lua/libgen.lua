@@ -32,9 +32,9 @@ local function libgen(
   local vals = assert(T.vals)
   assert(type(vals) == "table")
   local num_vals = #vals
-  invalstype  = {}
-  valstype = {}
-  aggstype    = {}
+  local invalstype  = {}
+  local valstype = {}
+  local aggstype    = {}
   assert( ( num_vals >= 1 ) and ( num_vals <= 4 ) ) 
   -- 4 is just an arbitrary but hopefully reasonable limit
 
@@ -70,9 +70,11 @@ local function libgen(
     aggstype[i]   = aggtype
     --====================
   end
+  local subs = {}
+  subs.code_for_update  = "XXXXXX" 
+  subs.code_for_promote = "XXXXXX" 
   -- START generating code
   -- 1) hmap_type.h
-  local subs = {}
   -- set common stuff
   -- notice that key is unsigned
   subs.ckeytype = "u" .. assert(qconsts.qtypes[keytype].ctype)
@@ -82,7 +84,15 @@ local function libgen(
 
     subs.agg_val_rec = " ";
     subs.in_val_rec = " ";
-    subs.code_for_promote = "val = (" .. subs.cvaltype .. ") inval; "
+    subs.code_for_promote = "val = (" .. subs.cvaltype .. ") *ptr_inval; "
+
+    if ( aggstype[1] == "set" ) then 
+      subs.code_for_update = "vals[probe_loc] = *ptr_val;"
+    elseif ( aggstype[1] == "sum" ) then 
+      subs.code_for_update = "vals[probe_loc] += *ptr_val;"
+    else
+      assert(nil, "Unknown aggtype = ", aggstype[1])
+    end
 
   else
     subs.cvaltype = "VAL_REC_TYPE";
@@ -109,7 +119,7 @@ local function libgen(
     local X = {} 
     for i = 1, num_vals do
       local cvaltype = assert(qconsts.qtypes[valstype[i]].ctype)
-      X[#X+1] = "  val.val_" .. tostring(i) .. " = (" .. cvaltype .. ") inval.val_" .. tostring(i) .. ";"
+      X[#X+1] = "  val.val_" .. tostring(i) .. " = (" .. cvaltype .. ") ptr_inval->val_" .. tostring(i) .. ";"
     end
 
     subs.code_for_promote = table.concat(X, "\n");
@@ -134,12 +144,10 @@ local function libgen(
   subs.fn = "hmap_insert"
   subs.tmpl = "hmap_insert.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  --[[
   -- 6) hmap_get.[c, h]
   subs.fn = "hmap_get"
   subs.tmpl = "hmap_get.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  --]]
   -- 7) hmap_put.[c, h]
   subs.fn = "hmap_put"
   subs.tmpl = "hmap_put.tmpl.lua"
@@ -166,7 +174,7 @@ local function libgen(
   X[#X+1] = srcdir .. "_hmap_resize.c" 
   X[#X+1] = srcdir .. "_hmap_insert.c" 
   X[#X+1] = srcdir .. "_hmap_put.c" 
-  -- X[#X+1] = srcdir .. "_hmap_get.c" 
+  X[#X+1] = srcdir .. "_hmap_get.c" 
 --  X[#X+1] = srcdir .. "_hmap_del.c" 
   create_dot_o(X)
   X[#X+1] = " "

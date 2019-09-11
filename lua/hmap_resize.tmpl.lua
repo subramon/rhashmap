@@ -24,13 +24,10 @@ ${fn}(
   if ( ptr_hmap == NULL ) { go_BYE(-1); }
   const size_t oldsize = ptr_hmap->size;
   const size_t nitems  = ptr_hmap->nitems;
-#ifdef DEBUG
-  uint32_t *newhashes = NULL, *hashes = ptr_hmap->hashes;
-#endif
-  ${cvaltype} *newvals = NULL, *vals = ptr_hmap->vals;
-  ${ckeytype} *newkeys = NULL, *keys = ptr_hmap->keys;
-  uint16_t *newpsls = NULL, *psls = ptr_hmap->psls;
-  uint64_t num_probes = *ptr_num_probes;
+  ${cvaltype} *vals = ptr_hmap->vals;
+  ${ckeytype} *keys = ptr_hmap->keys;
+  uint16_t *psls = ptr_hmap->psls;
+  uint64_t num_probes = 0;
 
   // some obvious logical checks
   if ( ( newsize <= 0 ) || ( newsize >= UINT_MAX ) )  { go_BYE(-1); }
@@ -38,12 +35,9 @@ ${fn}(
     go_BYE(-1); 
   }
 
-#ifdef DEBUG
-  ptr_hmap->hashes = newhashes = calloc(sizeof(uint32_t), newsize);
-#endif
-  ptr_hmap->vals = newvals = calloc(sizeof(${cvaltype}), newsize);
-  ptr_hmap->keys = newkeys = calloc(sizeof(${ckeytype}), newsize);
-  ptr_hmap->psls = newpsls = calloc(sizeof(uint16_t), newsize);
+  ptr_hmap->vals = calloc(sizeof(${cvaltype}), newsize);
+  ptr_hmap->keys = calloc(sizeof(${ckeytype}), newsize);
+  ptr_hmap->psls = calloc(sizeof(uint16_t), newsize);
 
   ptr_hmap->size    = newsize;
   ptr_hmap->nitems  = 0;
@@ -56,12 +50,9 @@ ${fn}(
     bool updated = false;
     if ( keys[i] == 0 ) { continue; } // skip empty slots
     ${cvaltype} oldval; // just for function signature match 
-    hmap_insert(ptr_hmap, keys[i], vals[i], &oldval, &updated, &num_probes);
+    hmap_insert(ptr_hmap, keys[i], &(vals[i]), &oldval, &updated, &num_probes);
     if ( updated ) { go_BYE(-1); }
   }
-#ifdef DEBUG
-  free_if_non_null(hashes);
-#endif
   free_if_non_null(keys);
   free_if_non_null(vals);
   free_if_non_null(psls);

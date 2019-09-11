@@ -39,6 +39,7 @@ ${fn}(
   ptr_hmap->keys = calloc(ptr_hmap->size, sizeof(${ckeytype}));
   return_if_malloc_failed(ptr_hmap->keys);
 
+  ptr_hmap-> divinfo = fast_div32_init(ptr_hmap->size);
 BYE:
   if ( status != 0 ) { 
     if ( ptr_hmap != NULL ) { 

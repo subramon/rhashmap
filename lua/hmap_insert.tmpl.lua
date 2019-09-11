@@ -8,7 +8,7 @@ extern int
 ${fn}(
     hmap_t *ptr_hmap, 
     ${ckeytype} key,
-    ${cvaltype} val,
+    ${cvaltype} *ptr_val,
     ${cvaltype} *ptr_old_val,
     bool *ptr_updated,
     uint64_t *ptr_num_probes
@@ -21,7 +21,7 @@ int
 ${fn}(
     hmap_t *ptr_hmap, 
     ${ckeytype} key,
-    ${cvaltype} val,
+    ${cvaltype} *ptr_val,
     ${cvaltype} *ptr_old_val,
     bool *ptr_updated,
     uint64_t *ptr_num_probes
@@ -31,7 +31,7 @@ ${fn}(
   const uint32_t hash = murmurhash3(&key, sizeof(${ckeytype}), 
     ptr_hmap->hashkey);
   register uint32_t probe_loc; // location where we probe
-  register uint64_t num_probes = *ptr_num_probes;
+  register uint64_t num_probes = 0;
   register uint32_t size = ptr_hmap->size;
   uint64_t divinfo = ptr_hmap->divinfo;
   *ptr_updated = false;
@@ -56,13 +56,14 @@ ${fn}(
   register ${ckeytype} *keys = ptr_hmap->keys;
   register ${cvaltype} *vals = ptr_hmap->vals;
   probe_loc = fast_rem32(hash, size, divinfo);
+  if ( probe_loc >= size ) { go_BYE(-1); }
   for ( ; ; ) {
     if ( num_probes >= size ) { go_BYE(-1); }
     ${ckeytype} this_key = keys[probe_loc];
-    if ( key != 0 ) { // If there is a key in the bucket.
+    if ( this_key != 0 ) { // If there is a key in the bucket.
       if ( this_key == key ) { 
         *ptr_old_val = vals[probe_loc];
-        ${code_for_update};
+        ${code_for_update}
         *ptr_updated = true;
         break;
       }
@@ -73,10 +74,10 @@ ${fn}(
       if ( this_psl > psls[probe_loc] ) {
         psls[probe_loc] = psl;
         keys[probe_loc] = key;
-        vals[probe_loc] = val;
+        vals[probe_loc] = *ptr_val;
         psl = this_psl;
         key = this_key;
-        val = this_val;
+        *ptr_val = this_val;
       }
       psl++;
       /* Continue to the next bucket. */
@@ -85,14 +86,13 @@ ${fn}(
       if ( probe_loc == size ) { probe_loc = 0; }
     }
     else {
+      ptr_hmap->psls[probe_loc] = psl;
+      ptr_hmap->keys[probe_loc] = key;
+      ptr_hmap->vals[probe_loc] = *ptr_val;
+      ptr_hmap->nitems++;
       break;
     }
   }
-  ptr_hmap->psls[probe_loc] = psl;
-  ptr_hmap->keys[probe_loc] = key;
-  ptr_hmap->vals[probe_loc] = val;
-  ptr_hmap->nitems++;
-
   *ptr_num_probes += num_probes;
 BYE:
   return status;
