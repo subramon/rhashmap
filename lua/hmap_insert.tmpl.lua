@@ -71,7 +71,7 @@ ${fn}(
       uint16_t this_psl = ptr_hmap->psls[probe_loc];
       ${cvaltype} this_val = ptr_hmap->vals[probe_loc];
       // We found a "rich" bucket.  Capture its location.
-      if ( this_psl > psls[probe_loc] ) {
+      if ( psl > psls[probe_loc] ) {
         psls[probe_loc] = psl;
         keys[probe_loc] = key;
         vals[probe_loc] = *ptr_val;

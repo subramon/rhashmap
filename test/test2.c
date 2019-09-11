@@ -27,6 +27,9 @@ test_basic(
     bool is_updated, is_found;
     keytype key = i+1;
     invaltype inval = i+1;
+    if ( inval == 1834 ) { 
+      printf("hello world \n");
+    }
     status = hmap_put(ptr_hmap, key, &inval, &oldval, &is_updated, &num_probes);
     cBYE(status);
     if ( ptr_hmap->nitems != i+1 ) { go_BYE(-1); }

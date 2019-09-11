@@ -28,8 +28,7 @@ extern int ${fn}(
 {
   int status = 0;
   uint32_t hash = murmurhash3(&key, sizeof(${ckeytype}), ptr_hmap->hashkey);
-  register uint32_t probe_loc = 
-    fast_rem32(hash, ptr_hmap->size, ptr_hmap->divinfo);
+  register uint32_t probe_loc;
   *ptr_is_found = false;
   register uint64_t num_probes = 0;
 
@@ -39,6 +38,8 @@ extern int ${fn}(
   register uint64_t size    = ptr_hmap->size;
   register ${ckeytype} *keys = ptr_hmap->keys;
   register uint16_t *psls = ptr_hmap->psls;
+  probe_loc = fast_rem32(hash, size, ptr_hmap->divinfo);
+  if ( probe_loc >= size ) { go_BYE(-1); }
   for ( ; ; ) {
     if ( num_probes >= size ) { go_BYE(-1); }
     ${ckeytype} this_key = keys[probe_loc];
