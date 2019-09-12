@@ -2,10 +2,13 @@
  * Use is subject to license terms, as specified in the LICENSE file.
  */
 
+// gcc -g  $QC_FLAGS test2.c ../lua/libfoobar.so -I../xgen_inc/ -I../inc/
 #include "_hmap_create.h"
 #include "_hmap_destroy.h"
 #include "_hmap_put.h"
 #include "_hmap_get.h"
+#include "_hmap_del.h"
+#include "_hmap_chk_no_holes.h"
 
 typedef uint64_t keytype ;
 typedef float invaltype ;
@@ -17,7 +20,7 @@ test_basic(
 {
   int status = 0;
   hmap_t *ptr_hmap = NULL;
-  uint32_t N = 10000000;
+  uint32_t N = 1000000;
 
   ptr_hmap = hmap_create(0);
   if ( ptr_hmap == NULL) { go_BYE(-1); }
@@ -27,21 +30,49 @@ test_basic(
     bool is_updated, is_found;
     keytype key = i+1;
     invaltype inval = i+1;
-    if ( inval == 1834 ) { 
-      printf("hello world \n");
-    }
     status = hmap_put(ptr_hmap, key, &inval, &oldval, &is_updated, &num_probes);
     cBYE(status);
     if ( ptr_hmap->nitems != i+1 ) { go_BYE(-1); }
     if ( is_updated == true ) { go_BYE(-1); }
     status = hmap_get(ptr_hmap, key, &altval, &is_found, &num_probes);
     cBYE(status);
-    if ( altval != inval ) { 
-      printf("key = %lu, inval = %f, altval = %lf \n",
-          key, inval, altval);
-      go_BYE(-1); }
+    if ( altval != inval ) { go_BYE(-1); }
     if ( !is_found ) { go_BYE(-1); }
   }
+  // Put keys (with same value as before) in one more time 
+  for ( uint32_t i = 0; i < N; i++ ) { 
+    valtype altval, oldval;
+    bool is_updated, is_found;
+    keytype key = i+1;
+    invaltype inval = i+1;
+    status = hmap_put(ptr_hmap, key, &inval, &oldval, &is_updated, &num_probes);
+    cBYE(status);
+    if ( ptr_hmap->nitems != N ) { go_BYE(-1); }
+    if ( is_updated == false ) { go_BYE(-1); }
+    status = hmap_get(ptr_hmap, key, &altval, &is_found, &num_probes);
+    cBYE(status);
+    if ( altval != 2*inval ) { go_BYE(-1); }
+    if ( !is_found ) { go_BYE(-1); }
+  }
+  status = hmap_chk_no_holes(ptr_hmap);  cBYE(status);
+  // Delete keys 
+  for ( uint32_t i = 0; i < N; i++ ) { 
+    valtype oldval, altval;
+    bool is_found;
+    keytype key = i+1;
+    status = hmap_del(ptr_hmap, key, &is_found, &oldval, &num_probes);
+    cBYE(status);
+    if ( ( i % 1000 ) == 0 ) { 
+      status = hmap_chk_no_holes(ptr_hmap);  cBYE(status);
+      printf("Deleted %6d \n", i);
+    }
+    if ( is_found == false ) { go_BYE(-1); }
+    if ( ptr_hmap->nitems != N-(i+1) ) { go_BYE(-1); }
+    status = hmap_get(ptr_hmap, key, &altval, &is_found, &num_probes);
+    cBYE(status);
+    if ( is_found ) { go_BYE(-1); }
+  }
+  status = hmap_chk_no_holes(ptr_hmap);  cBYE(status);
   hmap_destroy(ptr_hmap); 
 BYE:
   return status;

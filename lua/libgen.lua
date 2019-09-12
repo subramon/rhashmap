@@ -152,6 +152,14 @@ local function libgen(
   subs.fn = "hmap_put"
   subs.tmpl = "hmap_put.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
+  -- 8) hmap_del.[c, h]
+  subs.fn = "hmap_del"
+  subs.tmpl = "hmap_del.tmpl.lua"
+  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
+  -- 9) hmap_chk_no_holes.[c, h]
+  subs.fn = "hmap_chk_no_holes"
+  subs.tmpl = "hmap_chk_no_holes.tmpl.lua"
+  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
   -- identify files from src/ folder and generate .h files for them
   local S = {}
   S[#S+1] = "../src/hmap_mk_loc.c"
@@ -175,7 +183,8 @@ local function libgen(
   X[#X+1] = srcdir .. "_hmap_insert.c" 
   X[#X+1] = srcdir .. "_hmap_put.c" 
   X[#X+1] = srcdir .. "_hmap_get.c" 
---  X[#X+1] = srcdir .. "_hmap_del.c" 
+  X[#X+1] = srcdir .. "_hmap_chk_no_holes.c" 
+  X[#X+1] = srcdir .. "_hmap_del.c" 
   create_dot_o(X)
   X[#X+1] = " "
   local command = "gcc -shared *.o  -o " .. libname 
