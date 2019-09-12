@@ -40,10 +40,10 @@ ${fn}(
     )
 {
   int status = 0;
+  CHK_REC_TYPE *chks = NULL;
   if ( ptr_hmap == NULL ) { go_BYE(-1); }
   int n = ptr_hmap->nitems;
-  if ( n <= 1 ) { go_BYE(-1); }
-  CHK_REC_TYPE *chks = NULL;
+  if ( n <= 1 ) { return status; } // passes trivially
 
   chks = malloc(n * sizeof(CHK_REC_TYPE));
   return_if_malloc_failed(chks);
@@ -66,21 +66,15 @@ ${fn}(
     if ( loc == ploc ) { continue; }
     if ( ploc < loc ) {
       for ( unsigned int j = ploc; j <= loc; j++ ) {
-        if ( ptr_hmap->keys[j] == 0 ) { 
-          printf("strange\n");
-        }
+        if ( ptr_hmap->keys[j] == 0 ) { go_BYE(-1); }
       }
     }
     else {
       for ( unsigned int j = ploc; j < ptr_hmap->size; j++ ) {
-        if ( ptr_hmap->keys[j] == 0 ) { 
-          printf("strange\n");
-        }
+        if ( ptr_hmap->keys[j] == 0 ) { go_BYE(-1); }
       }
       for ( unsigned int j = 0; j < loc; j++ ) { 
-        if ( ptr_hmap->keys[j] == 0 ) { 
-          printf("strange\n");
-        }
+        if ( ptr_hmap->keys[j] == 0 ) { go_BYE(-1); }
       }
     }
   }

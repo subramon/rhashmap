@@ -65,7 +65,7 @@ ${fn}(
    * The probe sequence must be preserved in the deletion case.
    * Use the backwards-shifting method to maintain low variance.
    */
-  for ( int num_moves = 0; ; num_moves++) {
+  for ( unsigned int num_moves = 0; ; num_moves++) {
     if ( num_moves == size ) { go_BYE(-1); }
     /*
      * Stop if we reach an empty bucket or hit a key which

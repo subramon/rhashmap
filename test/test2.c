@@ -55,16 +55,16 @@ test_basic(
     if ( !is_found ) { go_BYE(-1); }
   }
   status = hmap_chk_no_holes(ptr_hmap);  cBYE(status);
-  // Delete keys 
+  fprintf(stderr, " Delete keys \n");
   for ( uint32_t i = 0; i < N; i++ ) { 
     valtype oldval, altval;
     bool is_found;
     keytype key = i+1;
     status = hmap_del(ptr_hmap, key, &is_found, &oldval, &num_probes);
     cBYE(status);
+    if ( oldval != 2*(i+1) ) { go_BYE(-1); }
     if ( ( i % 1000 ) == 0 ) { 
       status = hmap_chk_no_holes(ptr_hmap);  cBYE(status);
-      printf("Deleted %6d \n", i);
     }
     if ( is_found == false ) { go_BYE(-1); }
     if ( ptr_hmap->nitems != N-(i+1) ) { go_BYE(-1); }
@@ -73,6 +73,16 @@ test_basic(
     if ( is_found ) { go_BYE(-1); }
   }
   status = hmap_chk_no_holes(ptr_hmap);  cBYE(status);
+  fprintf(stderr, " Delete keys again \n");
+  for ( uint32_t i = 0; i < N; i++ ) { 
+    valtype oldval;
+    bool is_found;
+    keytype key = i+1;
+    status = hmap_del(ptr_hmap, key, &is_found, &oldval, &num_probes);
+    cBYE(status);
+    if ( is_found == true ) { go_BYE(-1); }
+    if ( ptr_hmap->nitems != 0 ) { go_BYE(-1); }
+  }
   hmap_destroy(ptr_hmap); 
 BYE:
   return status;
