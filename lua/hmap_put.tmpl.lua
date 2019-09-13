@@ -9,8 +9,8 @@ extern int
 hmap_put(
     hmap_t *ptr_hmap, 
     ${ckeytype}  key, 
-    ${cinvaltype}  *ptr_val, 
-    ${cvaltype} *ptr_oldval,
+    val_t val, 
+    val_t *ptr_oldval,
     bool *ptr_updated,
     uint64_t *ptr_num_probes
     );
@@ -27,8 +27,8 @@ int
 hmap_put(
     hmap_t *ptr_hmap, 
     ${ckeytype}  key, 
-    ${cinvaltype}  *ptr_inval, 
-    ${cvaltype} *ptr_oldval,
+    val_t val, 
+    val_t *ptr_oldval,
     bool *ptr_updated,
     uint64_t *ptr_num_probes
     )
@@ -46,9 +46,7 @@ hmap_put(
   if ( resize ) { 
     status = hmap_resize(ptr_hmap, newsize, ptr_num_probes); cBYE(status);
   }
-  // convert from inval to val 
-${code_for_promote};
-  status = hmap_insert(ptr_hmap, key, &val, ptr_oldval, ptr_updated, &num_probes);
+  status = hmap_insert(ptr_hmap, key, val, ptr_oldval, ptr_updated, &num_probes);
   cBYE(status);
   *ptr_num_probes += num_probes;
 BYE:

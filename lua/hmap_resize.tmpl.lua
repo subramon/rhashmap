@@ -24,21 +24,15 @@ ${fn}(
   if ( ptr_hmap == NULL ) { go_BYE(-1); }
   const size_t oldsize = ptr_hmap->size;
   const size_t nitems  = ptr_hmap->nitems;
-  ${cvaltype} *vals = ptr_hmap->vals;
-  ${ckeytype} *keys = ptr_hmap->keys;
-  uint16_t *psls = ptr_hmap->psls;
   uint64_t num_probes = 0;
+  register bkt_t *bkts = ptr_hmap->bkts;
 
   // some obvious logical checks
   if ( ( newsize <= 0 ) || ( newsize >= UINT_MAX ) )  { go_BYE(-1); }
   if ( newsize < (uint32_t)(HIGH_WATER_MARK * (double)nitems) ) { 
     go_BYE(-1); 
   }
-
-  ptr_hmap->vals = calloc(sizeof(${cvaltype}), newsize);
-  ptr_hmap->keys = calloc(sizeof(${ckeytype}), newsize);
-  ptr_hmap->psls = calloc(sizeof(uint16_t), newsize);
-
+  ptr_hmap->bkts = calloc(sizeof(bkt_t), newsize);
   ptr_hmap->size    = newsize;
   ptr_hmap->nitems  = 0;
 
@@ -48,15 +42,12 @@ ${fn}(
 
   for ( uint32_t i = 0; i < oldsize; i++) {
     bool updated = false;
-    if ( keys[i] == 0 ) { continue; } // skip empty slots
-    ${cvaltype} oldval; // just for function signature match 
-    hmap_insert(ptr_hmap, keys[i], &(vals[i]), &oldval, &updated, &num_probes);
+    if ( bkts[i].key == 0 ) { continue; } // skip empty slots
+    val_t oldval; // just for function signature match 
+    hmap_insert(ptr_hmap, bkts[i].key, bkts[i].val, &oldval, &updated, &num_probes);
     if ( updated ) { go_BYE(-1); }
   }
-  free_if_non_null(keys);
-  free_if_non_null(vals);
-  free_if_non_null(psls);
-
+  free_if_non_null(bkts);
   *ptr_num_probes += num_probes;
 BYE:
   return status;

@@ -31,21 +31,14 @@ ${fn}(
   ptr_hmap->size = ptr_hmap->minsize = MAX(minsize, HASH_INIT_SIZE);
 
 
-  ptr_hmap->psls = calloc(ptr_hmap->size, sizeof(uint16_t)); 
-  return_if_malloc_failed(ptr_hmap->psls);
-
-  ptr_hmap->vals = calloc(ptr_hmap->size, sizeof(${cvaltype}));
-  return_if_malloc_failed(ptr_hmap->vals);
-  ptr_hmap->keys = calloc(ptr_hmap->size, sizeof(${ckeytype}));
-  return_if_malloc_failed(ptr_hmap->keys);
+  ptr_hmap->bkts = calloc(ptr_hmap->size, sizeof(bkt_t)); 
+  return_if_malloc_failed(ptr_hmap->bkts);
 
   ptr_hmap-> divinfo = fast_div32_init(ptr_hmap->size);
 BYE:
   if ( status != 0 ) { 
     if ( ptr_hmap != NULL ) { 
-      free_if_non_null(ptr_hmap->keys);
-      free_if_non_null(ptr_hmap->vals);
-      free_if_non_null(ptr_hmap->psls);
+      free_if_non_null(ptr_hmap->bkts);
     }
     free_if_non_null(ptr_hmap);
     return NULL; 

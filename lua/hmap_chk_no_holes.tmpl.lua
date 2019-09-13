@@ -49,10 +49,10 @@ ${fn}(
   return_if_malloc_failed(chks);
   int ctr = 0;
   for ( unsigned int i = 0; i < ptr_hmap->size; i++ ) {
-    if ( ptr_hmap->keys[i] == 0 ) { continue; }
+    if ( ptr_hmap->bkts[i].key == 0 ) { continue; }
     if ( ctr >= n ) { go_BYE(-1); }
-    chks[ctr].key = ptr_hmap->keys[i];
-    chks[ctr].hsh = murmurhash3(&(ptr_hmap->keys[i]), sizeof(${ckeytype}), 
+    chks[ctr].key = ptr_hmap->bkts[i].key;
+    chks[ctr].hsh = murmurhash3(&(ptr_hmap->bkts[i].key), sizeof(${ckeytype}), 
         ptr_hmap->hashkey);
     chks[ctr].ploc = fast_rem32(chks[ctr].hsh, ptr_hmap->size, ptr_hmap->divinfo);
     chks[ctr].loc = i;
@@ -66,15 +66,15 @@ ${fn}(
     if ( loc == ploc ) { continue; }
     if ( ploc < loc ) {
       for ( unsigned int j = ploc; j <= loc; j++ ) {
-        if ( ptr_hmap->keys[j] == 0 ) { go_BYE(-1); }
+        if ( ptr_hmap->bkts[j].key == 0 ) { go_BYE(-1); }
       }
     }
     else {
       for ( unsigned int j = ploc; j < ptr_hmap->size; j++ ) {
-        if ( ptr_hmap->keys[j] == 0 ) { go_BYE(-1); }
+        if ( ptr_hmap->bkts[j].key == 0 ) { go_BYE(-1); }
       }
       for ( unsigned int j = 0; j < loc; j++ ) { 
-        if ( ptr_hmap->keys[j] == 0 ) { go_BYE(-1); }
+        if ( ptr_hmap->bkts[j].key == 0 ) { go_BYE(-1); }
       }
     }
   }

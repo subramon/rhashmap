@@ -23,110 +23,91 @@ local function libgen(
   T,
   libname
   )
+  local subs = {}
   if ( not plpath.isdir(srcdir) ) then plpath.mkdir(srcdir) end
   if ( not plpath.isdir(incdir) ) then plpath.mkdir(incdir) end
+  --=====================================
   assert(type(T) == "table")
   local keytype = assert(T.keytype)
   assert( ( keytype == "I4" ) or ( keytype == "I8" ) ) 
-
+  subs.ckeytype = "u" .. assert(qconsts.qtypes[keytype].ctype)
+  --=====================================
   local vals = assert(T.vals)
   assert(type(vals) == "table")
   local num_vals = #vals
-  local invalstype  = {}
-  local valstype = {}
-  local aggstype    = {}
-  assert( ( num_vals >= 1 ) and ( num_vals <= 4 ) ) 
   -- 4 is just an arbitrary but hopefully reasonable limit
-
+  assert( ( num_vals >= 1 ) and ( num_vals <= 4 ) ) 
+  --=====================================
+  local cnttype = "I4"
+  if ( T.cnttype ) then 
+    assert( (cnttype == "I4" ) or (cnttype == "I8" ) )
+  end
+  subs.ccnttype = "u" .. assert(qconsts.qtypes[cnttype].ctype)
+  --=====================================
+  local aggstype  = {}
+  local valstype = {}
   for i, v in pairs(vals) do
-    local invaltype  = assert(v.read_as)
-    assert( ( invaltype == "I1" ) or ( invaltype == "I2" )  or
-            ( invaltype == "I4" ) or ( invaltype == "I8" )  or
-            ( invaltype == "F4" ) or ( invaltype == "F8" ) ) 
-    local aggtype    = assert(v.agg_type)
-    local valtype = v.agg_as -- note this is optional
-    if ( valtype ) then 
-      assert( ( valtype == "I1" ) or ( valtype == "I2" )  or
+    local valtype  = assert(v.valtype)
+    assert( ( valtype == "I1" ) or ( valtype == "I2" )  or
             ( valtype == "I4" ) or ( valtype == "I8" )  or
             ( valtype == "F4" ) or ( valtype == "F8" ) ) 
-    end
+    local aggtype    = assert(v.aggtype)
     --====================
-    if ( ( aggtype == "set" ) or ( aggtype == "min" ) or
-         ( aggtype == "max" ) ) then 
-      assert(not valtype) -- should not be specified
-      valtype = invaltype 
-    elseif ( aggtype == "cnt" ) then 
-      if ( not valtype ) then valtype = "I8" end
-      assert( ( valtype == "I4" ) or ( valtype == "I8" ) ) 
-    elseif ( aggtype == "sum" ) then 
-      -- no checks in this case
-    else
-      assert(nil, "invalid aggtype")
-    end
-    if ( not valtype ) then valtype = invaltype end
-    --====================
-    invalstype[i] = invaltype 
     valstype[i]   = valtype
     aggstype[i]   = aggtype
     --====================
   end
-  local subs = {}
   subs.code_for_update  = "XXXXXX" 
-  subs.code_for_promote = "XXXXXX" 
+  subs.code_for_promote = "YYYYYY" 
   -- START generating code
   -- 1) hmap_type.h
   -- set common stuff
   -- notice that key is unsigned
-  subs.ckeytype = "u" .. assert(qconsts.qtypes[keytype].ctype)
-  if ( num_vals == 1 ) then 
-    subs.cinvaltype  = assert(qconsts.qtypes[invalstype[1]].ctype) 
-    subs.cvaltype = assert(qconsts.qtypes[valstype[1]].ctype)
-
-    subs.agg_val_rec = " ";
-    subs.in_val_rec = " ";
-    subs.code_for_promote = "val = (" .. subs.cvaltype .. ") *ptr_inval; "
-
-    if ( aggstype[1] == "set" ) then 
-      subs.code_for_update = "vals[probe_loc] = *ptr_val;"
-    elseif ( aggstype[1] == "sum" ) then 
-      subs.code_for_update = "vals[probe_loc] += *ptr_val;"
+  --================================
+  local X = {}
+  X[#X+1] = "// start update "
+  for i = 1, num_vals do 
+    local si = tostring(i)
+    local dst = "bkts[probe_loc].val.val_" .. si 
+    local src = " val.val_" ..  si 
+    if ( aggstype[i] == "set" ) then 
+      X[#X+1] = dst .. " = " .. src 
+    elseif ( aggstype[i] == "sum" ) then 
+      X[#X+1] = dst .. " += " .. src 
+    elseif ( aggstype[i] == "cnt" ) then 
+      X[#X+1] = dst .. " += 1 " 
+    elseif ( aggstype[i] == "min" ) then 
+      X[#X+1] = dst .. " = min(" .. dst .. "," .. src .. ")"
+    elseif ( aggstype[i] == "max" ) then 
+      X[#X+1] = dst .. " = max(" .. dst .. "," .. src .. ")"
     else
       assert(nil, "Unknown aggtype = ", aggstype[1])
     end
-
-  else
-    subs.cvaltype = "VAL_REC_TYPE";
-    subs.cinvaltype  = "IN_VAL_REC_TYPE";
-
-    local X = {}
-    X[#X+1] = "typedef struct _in_val_rec_type { ";
-    for i = 1, num_vals do 
-      local cvaltype = assert(qconsts.qtypes[invalstype[i]].ctype)
-      X[#X+1] = "  " .. cvaltype .. " val_" .. tostring(i) .. ";" ;
-    end
-    X[#X+1] = " } IN_VAL_REC_TYPE ; ";
-    subs.in_val_rec = table.concat(X, "\n");
-
-    local X = {}
-    X[#X+1] = "typedef struct _val_rec_type { ";
-    for i = 1, num_vals do 
-      local cvaltype = assert(qconsts.qtypes[valstype[i]].ctype)
-      X[#X+1] = "  " .. cvaltype .. " val_" .. tostring(i) .. ";" ;
-    end
-    X[#X+1] = " } VAL_REC_TYPE ; ";
-    subs.val_rec = table.concat(X, "\n");
-
-    local X = {} 
-    for i = 1, num_vals do
-      local cvaltype = assert(qconsts.qtypes[valstype[i]].ctype)
-      X[#X+1] = "  val.val_" .. tostring(i) .. " = (" .. cvaltype .. ") ptr_inval->val_" .. tostring(i) .. ";"
-    end
-
-    subs.code_for_promote = table.concat(X, "\n");
   end
+  X[#X+1] = "// stop update "
+  subs.code_for_update = table.concat(X, ";\n");
+  --=============================
+  local X = {}
+  for i = 1, num_vals do 
+    local cvaltype = assert(qconsts.qtypes[valstype[i]].ctype)
+    X[#X+1] = cvaltype .. " val_" .. tostring(i) .. ";"
+  end
+  subs.spec_for_vals = table.concat(X, "\n");
+  --=============================
+  local X = {}
+  for i = 1, num_vals do 
+    local si = tostring(i)
+    X[#X+1] = "if ( v1.val_" .. si .. " != v2.val_" .. si .. " ) { return false; } "
+  end
+  subs.val_cmp_spec = table.concat(X, "\n");
+  --=============================
+  -- 0) hmap_eq.[c,h]
+  subs.tmpl = "hmap_eq.tmpl.lua"
+  subs.fn = "hmap_eq"
+  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
+  -- 1) hmap_type.h
   subs.tmpl = "hmap_type.tmpl.lua"
   subs.fn = "hmap_types"
-  subs.NUM_VALS = num_vals
   gen_code.doth(subs, incdir)
   -- 2) hmap_mk_hash.[c, h]
   subs.tmpl = "hmap_mk_hash.tmpl.lua"
@@ -140,7 +121,7 @@ local function libgen(
   subs.fn = "hmap_resize"
   subs.tmpl = "hmap_resize.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 5) hmap_find_loc.[c, h]
+  -- 5) hmap_insert.[c, h]
   subs.fn = "hmap_insert"
   subs.tmpl = "hmap_insert.tmpl.lua"
   gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
@@ -167,7 +148,7 @@ local function libgen(
   S[#S+1] = "../src/validate_psl_p.c"
   S[#S+1] = "../src/calc_new_size.c"
   S[#S+1] = "../src/murmurhash.c"
-  S[#S+1] = "../src/hmap_destroy.c"
+  S[#S+1] = "../src/hmap_destroy.c" 
   for k, v in ipairs(S) do 
     extract_func_decl(v, incdir)
   end
@@ -177,13 +158,14 @@ local function libgen(
   for k, v in ipairs(S) do 
     X[#X+1] = S[k]
   end
+  X[#X+1] = srcdir .. "_hmap_eq.c" 
   X[#X+1] = srcdir .. "_hmap_mk_hash.c" 
   X[#X+1] = srcdir .. "_hmap_create.c" 
   X[#X+1] = srcdir .. "_hmap_resize.c" 
+  X[#X+1] = srcdir .. "_hmap_chk_no_holes.c" 
   X[#X+1] = srcdir .. "_hmap_insert.c" 
   X[#X+1] = srcdir .. "_hmap_put.c" 
   X[#X+1] = srcdir .. "_hmap_get.c" 
-  X[#X+1] = srcdir .. "_hmap_chk_no_holes.c" 
   X[#X+1] = srcdir .. "_hmap_del.c" 
   create_dot_o(X)
   X[#X+1] = " "
