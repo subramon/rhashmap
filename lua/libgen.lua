@@ -5,6 +5,19 @@ local plpath   = require "pl.path"
 local srcdir   = "../xgen_src/"
 local incdir   = "../xgen_inc/"
 
+local function gen_src(
+  subs,
+  fn,
+  only_h
+  )
+  subs.fn = fn
+  subs.tmpl = fn .. ".tmpl.lua"
+  gen_code.doth(subs, incdir); 
+  if ( not only_h ) then 
+    gen_code.dotc(subs, srcdir)
+  end
+end
+
 local function create_dot_o(
   X
   )
@@ -60,7 +73,6 @@ local function libgen(
   subs.code_for_update  = "XXXXXX" 
   subs.code_for_promote = "YYYYYY" 
   -- START generating code
-  -- 1) hmap_type.h
   -- set common stuff
   -- notice that key is unsigned
   --================================
@@ -101,46 +113,17 @@ local function libgen(
   end
   subs.val_cmp_spec = table.concat(X, "\n");
   --=============================
-  -- 0) hmap_eq.[c,h]
-  subs.tmpl = "hmap_eq.tmpl.lua"
-  subs.fn = "hmap_eq"
-  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 1) hmap_type.h
-  subs.tmpl = "hmap_type.tmpl.lua"
-  subs.fn = "hmap_types"
-  gen_code.doth(subs, incdir)
-  -- 2) hmap_mk_hash.[c, h]
-  subs.tmpl = "hmap_mk_hash.tmpl.lua"
-  subs.fn = "hmap_mk_hash"
-  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 3) hmap_create.[c, h]
-  subs.fn = "hmap_create"
-  subs.tmpl = "hmap_create.tmpl.lua"
-  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 4) hmap_resize.[c, h]
-  subs.fn = "hmap_resize"
-  subs.tmpl = "hmap_resize.tmpl.lua"
-  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 5) hmap_insert.[c, h]
-  subs.fn = "hmap_insert"
-  subs.tmpl = "hmap_insert.tmpl.lua"
-  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 6) hmap_get.[c, h]
-  subs.fn = "hmap_get"
-  subs.tmpl = "hmap_get.tmpl.lua"
-  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 7) hmap_put.[c, h]
-  subs.fn = "hmap_put"
-  subs.tmpl = "hmap_put.tmpl.lua"
-  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 8) hmap_del.[c, h]
-  subs.fn = "hmap_del"
-  subs.tmpl = "hmap_del.tmpl.lua"
-  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
-  -- 9) hmap_chk_no_holes.[c, h]
-  subs.fn = "hmap_chk_no_holes"
-  subs.tmpl = "hmap_chk_no_holes.tmpl.lua"
-  gen_code.doth(subs, incdir); gen_code.dotc(subs, srcdir)
+  gen_src(subs, "hmap_chk_no_holes")
+  gen_src(subs, "hmap_create")
+  gen_src(subs, "hmap_del")
+  gen_src(subs, "hmap_eq")
+  gen_src(subs, "hmap_get")
+  gen_src(subs, "hmap_insert")
+  gen_src(subs, "hmap_mk_hsh")
+  gen_src(subs, "hmap_put")
+  gen_src(subs, "hmap_putn")
+  gen_src(subs, "hmap_resize")
+  gen_src(subs, "hmap_types", true)
   -- identify files from src/ folder and generate .h files for them
   local S = {}
   S[#S+1] = "../src/hmap_mk_loc.c"
@@ -158,15 +141,16 @@ local function libgen(
   for k, v in ipairs(S) do 
     X[#X+1] = S[k]
   end
-  X[#X+1] = srcdir .. "_hmap_eq.c" 
-  X[#X+1] = srcdir .. "_hmap_mk_hash.c" 
-  X[#X+1] = srcdir .. "_hmap_create.c" 
-  X[#X+1] = srcdir .. "_hmap_resize.c" 
   X[#X+1] = srcdir .. "_hmap_chk_no_holes.c" 
-  X[#X+1] = srcdir .. "_hmap_insert.c" 
-  X[#X+1] = srcdir .. "_hmap_put.c" 
-  X[#X+1] = srcdir .. "_hmap_get.c" 
+  X[#X+1] = srcdir .. "_hmap_create.c" 
   X[#X+1] = srcdir .. "_hmap_del.c" 
+  X[#X+1] = srcdir .. "_hmap_eq.c" 
+  X[#X+1] = srcdir .. "_hmap_get.c" 
+  X[#X+1] = srcdir .. "_hmap_insert.c" 
+  X[#X+1] = srcdir .. "_hmap_mk_hsh.c" 
+  X[#X+1] = srcdir .. "_hmap_put.c" 
+  X[#X+1] = srcdir .. "_hmap_putn.c" 
+  X[#X+1] = srcdir .. "_hmap_resize.c" 
   create_dot_o(X)
   X[#X+1] = " "
   local command = "gcc -shared *.o  -o " .. libname 
