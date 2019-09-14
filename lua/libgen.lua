@@ -118,6 +118,7 @@ local function libgen(
   gen_src(subs, "hmap_del")
   gen_src(subs, "hmap_eq")
   gen_src(subs, "hmap_get")
+  gen_src(subs, "hmap_getn")
   gen_src(subs, "hmap_insert")
   gen_src(subs, "hmap_mk_hsh")
   gen_src(subs, "hmap_put")
@@ -126,12 +127,13 @@ local function libgen(
   gen_src(subs, "hmap_types", true)
   -- identify files from src/ folder and generate .h files for them
   local S = {}
+  S[#S+1] = "../src/calc_new_size.c"
+  S[#S+1] = "../src/hmap_chk.c"
+  S[#S+1] = "../src/hmap_destroy.c" 
   S[#S+1] = "../src/hmap_mk_loc.c"
   S[#S+1] = "../src/hmap_mk_tid.c"
-  S[#S+1] = "../src/validate_psl_p.c"
-  S[#S+1] = "../src/calc_new_size.c"
   S[#S+1] = "../src/murmurhash.c"
-  S[#S+1] = "../src/hmap_destroy.c" 
+  S[#S+1] = "../src/validate_psl_p.c"
   for k, v in ipairs(S) do 
     extract_func_decl(v, incdir)
   end
@@ -146,6 +148,7 @@ local function libgen(
   X[#X+1] = srcdir .. "_hmap_del.c" 
   X[#X+1] = srcdir .. "_hmap_eq.c" 
   X[#X+1] = srcdir .. "_hmap_get.c" 
+  X[#X+1] = srcdir .. "_hmap_getn.c" 
   X[#X+1] = srcdir .. "_hmap_insert.c" 
   X[#X+1] = srcdir .. "_hmap_mk_hsh.c" 
   X[#X+1] = srcdir .. "_hmap_put.c" 

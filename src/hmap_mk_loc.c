@@ -20,7 +20,7 @@ hmap_mk_loc(
 {
   int status = 0;
   uint64_t divinfo = fast_div32_init(hmap_size);
-#pragma omp parallel for schedule(static, RH_CHUNK_SIZE)
+// TODO #pragma omp parallel for schedule(static, RH_CHUNK_SIZE)
   for ( uint32_t i = 0; i < nkeys; i++ ) {
     locs[i] = fast_rem32(hashes[i], hmap_size, divinfo);
   }

@@ -21,7 +21,7 @@ ${fn}(
 {
   int status = 0;
   int chunk_size = 1024;
-#pragma omp parallel for schedule(static, chunk_size)
+// TODO #pragma omp parallel for schedule(static, chunk_size)
   for ( uint32_t i = 0; i < nkeys; i++ ) {
     hashes[i] = murmurhash3(&(keys[i]), sizeof(${ckeytype}), hmap_hashkey);
   }

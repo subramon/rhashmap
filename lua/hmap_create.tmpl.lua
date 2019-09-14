@@ -35,6 +35,7 @@ ${fn}(
   return_if_malloc_failed(ptr_hmap->bkts);
 
   ptr_hmap-> divinfo = fast_div32_init(ptr_hmap->size);
+  ptr_hmap->hashkey ^= random() | (random() << 32);
 BYE:
   if ( status != 0 ) { 
     if ( ptr_hmap != NULL ) { 
