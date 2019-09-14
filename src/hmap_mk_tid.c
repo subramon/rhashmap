@@ -36,7 +36,7 @@ hmap_mk_tid(
   int status = 0;
   int chunk_size = 1024;
   uint64_t divinfo = fast_div32_init(nT);
-// TODO #pragma omp parallel for schedule(static, chunk_size)
+#pragma omp parallel for schedule(static, chunk_size)
   for ( uint32_t i = 0; i < nkeys; i++ ) {
     tids[i] = fast_rem32(hashes[i], nT, divinfo);
   }

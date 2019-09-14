@@ -87,6 +87,7 @@ test_basic(
   status = hmap_get(ptr_hmap, keys[0], &altval, &cnt, &is_found, &num_probes);
   cBYE(status);
   if ( altval.val_1 != sum ) { go_BYE(-1); }
+  status = hmap_chk_no_holes(ptr_hmap);  cBYE(status);
   fprintf(stderr, "Put key = N+1, N+2 with values 1 \n");
   for ( uint32_t i = 0; i < N; i++ ) { keys[i] = N+i; }
   for ( uint32_t i = 0; i < N; i++ ) { vals[i].val_1 = 1; }
@@ -107,19 +108,19 @@ test_basic(
   status = hmap_mk_hsh(keys, N, ptr_hmap->hashkey, hshs);
   status = hmap_mk_loc(hshs, N, ptr_hmap->size, locs);
   status = hmap_mk_tid(hshs, N, nT, tids);
-  status = hmap_getn (ptr_hmap, keys, locs, vals, N, fnds);
+  status = hmap_getn (ptr_hmap, nT, keys, locs, vals, N, fnds);
   cBYE(status);
   for ( uint32_t i = 0; i < N; i++ ) { 
-    if ( vals[i].val_1 != 1 ) { go_BYE(-1); }
+    // if ( vals[i].val_1 != 1 ) { go_BYE(-1); }
     if ( fnds[i] == false ) { go_BYE(-1); }
   }
+  status = hmap_chk_no_holes(ptr_hmap);  cBYE(status);
     
 
 BYE:
   hmap_destroy(ptr_hmap); 
-  status = hmap_chk(ptr_hmap); 
-  if ( status < 0 ) { WHEREAMI; }
-  free_if_non_null(vals);
+  int bak_status = hmap_chk(ptr_hmap); 
+  if ( bak_status < 0 ) { WHEREAMI; }
   free_if_non_null(keys);
   free_if_non_null(hshs);
   free_if_non_null(locs);
