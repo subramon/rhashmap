@@ -5,3 +5,8 @@ This is useful when update_type = ADD but not when update_type = SET
 For example, we may read an I2 but aggregate it as an F4
 
 
+
+Set initial count to 1 not 0
+
+transfer hmap_create from MAGG
+add hmap_instantiate

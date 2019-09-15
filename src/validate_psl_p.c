@@ -1,3 +1,4 @@
+// TODO Need to incorporate this check into the code
 //START_INCLUDES
 #include "hmap_common.h"
 #include "_hmap_types.h"

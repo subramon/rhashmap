@@ -111,7 +111,7 @@ test_basic(
   status = hmap_getn (ptr_hmap, nT, keys, locs, vals, N, fnds);
   cBYE(status);
   for ( uint32_t i = 0; i < N; i++ ) { 
-    // if ( vals[i].val_1 != 1 ) { go_BYE(-1); }
+    if ( vals[i].val_1 != 1 ) { go_BYE(-1); }
     if ( fnds[i] == false ) { go_BYE(-1); }
   }
   status = hmap_chk_no_holes(ptr_hmap);  cBYE(status);

@@ -6,4 +6,7 @@ local vals = {}
 local x = { valtype = "F8", aggtype = "sum" }
 vals[#vals+1] = x
 T.vals = vals
-libgen(T, "libtest2.so")
+T.so = "libtest2.so"
+T.lbl = "test2"
+return T
+-- libgen(T)

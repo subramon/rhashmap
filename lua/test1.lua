@@ -12,4 +12,7 @@ vals[#vals+1] = y
 vals[#vals+1] = z
 vals[#vals+1] = w
 T.vals = vals
-libgen(T, "libtest1.so")
+T.so = "libtest1.so"
+T.lbl = "test1"
+return T
+-- libgen(T)

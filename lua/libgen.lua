@@ -33,8 +33,7 @@ end
 
 
 local function libgen(
-  T,
-  libname
+  T
   )
   local subs = {}
   if ( not plpath.isdir(srcdir) ) then plpath.mkdir(srcdir) end
@@ -44,6 +43,13 @@ local function libgen(
   local keytype = assert(T.keytype)
   assert( ( keytype == "I4" ) or ( keytype == "I8" ) ) 
   subs.ckeytype = "u" .. assert(qconsts.qtypes[keytype].ctype)
+  --=====================================
+  -- libname, -- name of .so file that will be generated
+  local libname = assert(T.so) 
+  assert(type(libname) == "string")
+  -- lbl -- to distinguish between different hmap_xxx calls for different T
+  local lbl = assert(T.lbl) 
+  assert(type(lbl) == "string")
   --=====================================
   local vals = assert(T.vals)
   assert(type(vals) == "table")
