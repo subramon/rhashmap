@@ -11,7 +11,7 @@
  *	q = fast_div32(a, b, divinfo);
  *	r = fast_rem32(a, b, divinfo);
  */
-int
+static int
 test_fastdiv(
     uint32_t a,
     uint32_t b
